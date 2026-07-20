@@ -21,6 +21,8 @@ and this project follows [Semantic Versioning](https://semver.org/).
 - `GamificationCenter`: app-wide coordinator for the level-up celebration overlay (mentions stage changes and unlocked achievements/cosmetics) and a haptic + XP toast on task completion.
 - `AchievementEngine` + an 8-achievement catalog (first calendar connected, all three sources connected, first task, 100 tasks, 7-day streak, 30-day streak, Teen stage, Majestic stage), each unlocking a named `Cosmetic`. Trigger/unlock logic is wired into Tasks and Today; the achievements screen itself comes later.
 - `ProgressEngine.updateStreak`: daily streak tracking (extend on a consecutive day, reset on a gap), with unit tests.
+- `CompanionView`: cat name/stage/level header with a stage-tinted avatar ring, a mood line driven by whether any task is overdue, an XP progress bar to the next level, and a 2-column Collars grid (locked cells dimmed with the achievement name needed). All wired to real `ProgressEngine`/`Achievement`/`Cosmetic` data.
+- `UserProgress.catName`, defaulting to "Whiskers" — no cycle had introduced a place to name the cat yet, but Cycle 5's header needs one.
 
 ### Changed
 
