@@ -1,0 +1,12 @@
+# Xcode / Swift
+.build/
+DerivedData/
+xcuserdata/
+*.xcuserstate
+.swiftpm/
+*.xcodeproj/*
+!*.xcodeproj/project.pbxproj
+.DS_Store
+
+# XcodeGen generates the .xcodeproj from project.yml — keep it out of git
+CatCal.xcodeproj/
