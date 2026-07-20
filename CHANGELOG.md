@@ -17,6 +17,7 @@ and this project follows [Semantic Versioning](https://semver.org/).
 - `ProgressEngine`: flat 150 XP/level curve and a level → cat growth stage lookup (Newborn/Kitten/Teen cat/Adult/Majestic), with unit tests.
 - `CalendarService` wrapping EventKit: requests calendar access, merges today's events across every account the user has added in Settings, and best-effort classifies each as Google/Outlook/iCloud.
 - `TodayView`: date header, streak pill, event cards with a colored source accent bar and tag, a "tasks left today" teaser card, and a permission-denied empty state with a link to Settings. Now the app's root screen.
+- `TasksView`: pending/completed sections with animated checkbox completion, XP tags, and an "Add Task" sheet (title, optional due date, XP defaults to 5 or 10 with a due date). Completing a task awards XP through `ProgressEngine`. Wired up as the destination from Today's tasks teaser card.
 
 ### Changed
 

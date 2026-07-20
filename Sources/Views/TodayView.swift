@@ -70,10 +70,7 @@ struct TodayView: View {
         .navigationDestination(for: TodayDestination.self) { destination in
             switch destination {
             case .tasks:
-                // Placeholder until Cycle 3 adds TasksView.
-                Text("Tasks — coming in Cycle 3")
-                    .font(CatCalFont.body())
-                    .foregroundStyle(CatCalColor.textSecondary)
+                TasksView()
             }
         }
     }
