@@ -22,10 +22,28 @@ final class SessionController {
 
     // MARK: - Launch
 
+    /// Debug affordance for running the app in the Simulator, where Apple ID
+    /// sign-in is unreliable and often hangs indefinitely. Pass `-skipAuth`
+    /// as a launch argument to drop straight into the tab shell as the mock
+    /// user. Compiled out of release builds entirely.
+    private var isAuthBypassEnabled: Bool {
+        #if DEBUG
+        ProcessInfo.processInfo.arguments.contains("-skipAuth")
+        #else
+        false
+        #endif
+    }
+
     /// Restores a previous session from the Keychain, re-checking with Apple
     /// that the credential is still valid — the user can revoke it from
     /// Settings at any time, in which case we fall back to signed out.
     func restore() async {
+        if isAuthBypassEnabled {
+            CurrentUser.service = MockAuthService()
+            state = .signedIn(userID: MockAuthService.mockUserID)
+            return
+        }
+
         guard let storedID = Keychain.get(.appleUserID) else {
             state = .signedOut
             return
