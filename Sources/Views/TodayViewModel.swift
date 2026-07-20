@@ -8,6 +8,7 @@ final class TodayViewModel {
 
     var accessState: CalendarAccessState = .notDetermined
     var events: [CalendarEvent] = []
+    var connectedSources: Set<CalendarSource> = []
     var isLoading = false
 
     func load() async {
@@ -19,14 +20,19 @@ final class TodayViewModel {
         switch state {
         case .authorized:
             accessState = .authorized
-            events = await calendarService.fetchTodayEvents()
+            await loadEventsAndSources()
         case .notDetermined:
             accessState = await calendarService.requestAccess()
             if accessState == .authorized {
-                events = await calendarService.fetchTodayEvents()
+                await loadEventsAndSources()
             }
         case .denied:
             accessState = .denied
         }
+    }
+
+    private func loadEventsAndSources() async {
+        events = await calendarService.fetchTodayEvents()
+        connectedSources = await calendarService.connectedSources()
     }
 }

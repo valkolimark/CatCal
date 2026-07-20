@@ -16,6 +16,8 @@ enum TodayDestination: Hashable {
 }
 
 struct TodayView: View {
+    @Environment(\.modelContext) private var modelContext
+    @Environment(GamificationCenter.self) private var gamificationCenter
     @Query private var progressRecords: [UserProgress]
     @Query private var pendingTasks: [AppTask]
 
@@ -65,7 +67,19 @@ struct TodayView: View {
             }
         }
         .task {
+            AchievementEngine.seedIfNeeded(context: modelContext)
             await viewModel.load()
+            guard viewModel.accessState == .authorized else { return }
+
+            let progress = ProgressEngine.currentProgress(in: modelContext)
+            ProgressEngine.updateStreak(for: progress)
+
+            let unlocked = AchievementEngine.checkCalendarSources(viewModel.connectedSources, context: modelContext)
+                + AchievementEngine.checkStreak(progress.currentStreak, context: modelContext)
+
+            if let first = unlocked.first {
+                gamificationCenter.celebrate(levelUp: nil, achievement: first.achievement, cosmetic: first.cosmetic)
+            }
         }
         .navigationDestination(for: TodayDestination.self) { destination in
             switch destination {
@@ -233,5 +247,6 @@ private struct PermissionDeniedView: View {
     NavigationStack {
         TodayView()
     }
+    .environment(GamificationCenter())
     .modelContainer(for: [AppTask.self, UserProgress.self, Achievement.self, Cosmetic.self], inMemory: true)
 }

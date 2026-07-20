@@ -3,8 +3,8 @@ import SwiftUI
 
 struct TasksView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(GamificationCenter.self) private var gamificationCenter
     @Query private var tasks: [AppTask]
-    @Query private var progressRecords: [UserProgress]
 
     @State private var isShowingAddTask = false
 
@@ -14,7 +14,6 @@ struct TasksView: View {
             filter: #Predicate<AppTask> { $0.ownerID == ownerID },
             sort: \AppTask.title
         )
-        _progressRecords = Query(filter: #Predicate<UserProgress> { $0.ownerID == ownerID })
     }
 
     private var pendingTasks: [AppTask] {
@@ -83,16 +82,20 @@ struct TasksView: View {
         withAnimation {
             task.isCompleted = true
         }
-        ProgressEngine.awardXP(task.xpValue, to: currentProgress())
-    }
 
-    private func currentProgress() -> UserProgress {
-        if let existing = progressRecords.first {
-            return existing
-        }
-        let progress = UserProgress(ownerID: CurrentUser.id)
-        modelContext.insert(progress)
-        return progress
+        let progress = ProgressEngine.currentProgress(in: modelContext)
+        let result = ProgressEngine.awardXP(task.xpValue, to: progress)
+        gamificationCenter.showXPToast(task.xpValue)
+
+        let completedCount = tasks.filter(\.isCompleted).count
+        let unlocked = AchievementEngine.checkTaskCompletion(completedTaskCount: completedCount, context: modelContext)
+            + AchievementEngine.checkLevel(result.newLevel, context: modelContext)
+
+        gamificationCenter.celebrate(
+            levelUp: result,
+            achievement: unlocked.first?.achievement,
+            cosmetic: unlocked.first?.cosmetic
+        )
     }
 }
 
@@ -228,5 +231,6 @@ private struct AddTaskSheet: View {
     NavigationStack {
         TasksView()
     }
+    .environment(GamificationCenter())
     .modelContainer(for: [AppTask.self, UserProgress.self, Achievement.self, Cosmetic.self], inMemory: true)
 }

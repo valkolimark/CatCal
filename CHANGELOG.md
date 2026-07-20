@@ -18,6 +18,9 @@ and this project follows [Semantic Versioning](https://semver.org/).
 - `CalendarService` wrapping EventKit: requests calendar access, merges today's events across every account the user has added in Settings, and best-effort classifies each as Google/Outlook/iCloud.
 - `TodayView`: date header, streak pill, event cards with a colored source accent bar and tag, a "tasks left today" teaser card, and a permission-denied empty state with a link to Settings. Now the app's root screen.
 - `TasksView`: pending/completed sections with animated checkbox completion, XP tags, and an "Add Task" sheet (title, optional due date, XP defaults to 5 or 10 with a due date). Completing a task awards XP through `ProgressEngine`. Wired up as the destination from Today's tasks teaser card.
+- `GamificationCenter`: app-wide coordinator for the level-up celebration overlay (mentions stage changes and unlocked achievements/cosmetics) and a haptic + XP toast on task completion.
+- `AchievementEngine` + an 8-achievement catalog (first calendar connected, all three sources connected, first task, 100 tasks, 7-day streak, 30-day streak, Teen stage, Majestic stage), each unlocking a named `Cosmetic`. Trigger/unlock logic is wired into Tasks and Today; the achievements screen itself comes later.
+- `ProgressEngine.updateStreak`: daily streak tracking (extend on a consecutive day, reset on a gap), with unit tests.
 
 ### Changed
 

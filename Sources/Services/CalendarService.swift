@@ -60,6 +60,13 @@ actor CalendarService {
         }
     }
 
+    /// Every distinct calendar source the user currently has connected,
+    /// independent of whether they have events today — used to trigger the
+    /// "connect a calendar" achievements.
+    func connectedSources() -> Set<CalendarSource> {
+        Set(eventStore.calendars(for: .event).map(Self.source(for:)))
+    }
+
     func fetchTodayEvents(referenceDate: Date = Date()) -> [CalendarEvent] {
         let calendar = Calendar.current
         let startOfDay = calendar.startOfDay(for: referenceDate)

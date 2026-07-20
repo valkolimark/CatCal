@@ -1,4 +1,5 @@
 import Foundation
+import SwiftData
 
 enum CatStage: String, CaseIterable {
     case newborn = "Newborn"
@@ -62,5 +63,40 @@ enum ProgressEngine {
             previousStage: previousStage,
             newStage: newStage
         )
+    }
+
+    /// Bumps `currentStreak` once per calendar day: +1 if the last active
+    /// day was yesterday, reset to 1 if a day (or more) was missed, and a
+    /// no-op if today was already counted.
+    static func updateStreak(for progress: UserProgress, referenceDate: Date = Date()) {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: referenceDate)
+
+        guard let lastActive = progress.lastActiveDate else {
+            progress.currentStreak = 1
+            progress.lastActiveDate = today
+            return
+        }
+
+        let lastActiveDay = calendar.startOfDay(for: lastActive)
+        guard lastActiveDay != today else { return }
+
+        let daysBetween = calendar.dateComponents([.day], from: lastActiveDay, to: today).day ?? 0
+        progress.currentStreak = daysBetween == 1 ? progress.currentStreak + 1 : 1
+        progress.lastActiveDate = today
+    }
+
+    /// Fetches the current user's `UserProgress`, creating and inserting one
+    /// if this is their first XP-earning action.
+    @MainActor
+    static func currentProgress(in context: ModelContext) -> UserProgress {
+        let ownerID = CurrentUser.id
+        let descriptor = FetchDescriptor<UserProgress>(predicate: #Predicate { $0.ownerID == ownerID })
+        if let existing = try? context.fetch(descriptor).first {
+            return existing
+        }
+        let progress = UserProgress(ownerID: ownerID)
+        context.insert(progress)
+        return progress
     }
 }

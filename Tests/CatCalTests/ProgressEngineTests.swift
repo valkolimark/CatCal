@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 @testable import CatCal
 
@@ -107,5 +108,56 @@ struct ProgressEngineAwardTests {
 
         #expect(progress.currentLevel == ProgressEngine.level(forTotalXP: 1000))
         #expect(result.newLevel == 7)
+    }
+}
+
+@Suite("ProgressEngine streaks")
+struct ProgressEngineStreakTests {
+    private let calendar = Calendar.current
+
+    @Test("First-ever activity starts the streak at 1")
+    func firstActivity() {
+        let progress = UserProgress(ownerID: "test-owner")
+        let today = Date()
+
+        ProgressEngine.updateStreak(for: progress, referenceDate: today)
+
+        #expect(progress.currentStreak == 1)
+        #expect(progress.lastActiveDate == calendar.startOfDay(for: today))
+    }
+
+    @Test("Being active again the same day does not double-count")
+    func sameDayIsNoOp() {
+        let progress = UserProgress(ownerID: "test-owner")
+        let today = Date()
+
+        ProgressEngine.updateStreak(for: progress, referenceDate: today)
+        ProgressEngine.updateStreak(for: progress, referenceDate: today.addingTimeInterval(3600))
+
+        #expect(progress.currentStreak == 1)
+    }
+
+    @Test("Being active on the very next day extends the streak")
+    func consecutiveDayExtends() {
+        let progress = UserProgress(ownerID: "test-owner")
+        let today = Date()
+        let yesterday = calendar.date(byAdding: .day, value: -1, to: today)!
+
+        ProgressEngine.updateStreak(for: progress, referenceDate: yesterday)
+        ProgressEngine.updateStreak(for: progress, referenceDate: today)
+
+        #expect(progress.currentStreak == 2)
+    }
+
+    @Test("Missing a day resets the streak to 1")
+    func gapResets() {
+        let progress = UserProgress(ownerID: "test-owner")
+        let today = Date()
+        let threeDaysAgo = calendar.date(byAdding: .day, value: -3, to: today)!
+
+        ProgressEngine.updateStreak(for: progress, referenceDate: threeDaysAgo)
+        ProgressEngine.updateStreak(for: progress, referenceDate: today)
+
+        #expect(progress.currentStreak == 1)
     }
 }
