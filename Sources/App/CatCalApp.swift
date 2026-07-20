@@ -5,7 +5,9 @@ import SwiftUI
 struct CatCalApp: App {
     var body: some Scene {
         WindowGroup {
-            RootView()
+            NavigationStack {
+                TodayView()
+            }
         }
         .modelContainer(for: [
             AppTask.self,

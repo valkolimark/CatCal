@@ -15,6 +15,8 @@ and this project follows [Semantic Versioning](https://semver.org/).
 - SwiftData models: `AppTask`, `UserProgress`, `Achievement`, `Cosmetic`, each with an `ownerID`.
 - `AuthServiceProtocol` + `CurrentUser` mock identity helper, so real auth can drop in later without touching models.
 - `ProgressEngine`: flat 150 XP/level curve and a level → cat growth stage lookup (Newborn/Kitten/Teen cat/Adult/Majestic), with unit tests.
+- `CalendarService` wrapping EventKit: requests calendar access, merges today's events across every account the user has added in Settings, and best-effort classifies each as Google/Outlook/iCloud.
+- `TodayView`: date header, streak pill, event cards with a colored source accent bar and tag, a "tasks left today" teaser card, and a permission-denied empty state with a link to Settings. Now the app's root screen.
 
 ### Changed
 
