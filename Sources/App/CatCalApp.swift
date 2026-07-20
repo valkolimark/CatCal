@@ -4,6 +4,7 @@ import SwiftUI
 @main
 struct CatCalApp: App {
     @State private var gamificationCenter = GamificationCenter()
+    @State private var session = SessionController()
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
 
     private let modelContainer = Persistence.makeModelContainer()
@@ -11,14 +12,27 @@ struct CatCalApp: App {
     var body: some Scene {
         WindowGroup {
             Group {
-                if hasCompletedOnboarding {
-                    RootTabView()
-                } else {
+                if !hasCompletedOnboarding {
                     OnboardingView {
                         hasCompletedOnboarding = true
                     }
+                } else {
+                    switch session.state {
+                    case .restoring:
+                        RestoringSessionView()
+                    case .signedOut:
+                        SignInView(session: session)
+                    case .signedIn:
+                        // Built only once signed in, so the @Query predicates
+                        // inside capture the real ownerID rather than the mock.
+                        RootTabView(session: session)
+                    }
                 }
             }
+            .task {
+                await session.restore()
+            }
+            .animation(.easeInOut(duration: 0.25), value: session.isSignedIn)
             .environment(gamificationCenter)
             .overlay(alignment: .top) {
                 if let toast = gamificationCenter.toast {

@@ -8,6 +8,8 @@ enum AppTab: Hashable {
 }
 
 struct RootTabView: View {
+    let session: SessionController
+
     @State private var selectedTab: AppTab = .today
 
     var body: some View {
@@ -31,7 +33,7 @@ struct RootTabView: View {
             .tag(AppTab.buddy)
 
             NavigationStack {
-                ProfileView()
+                ProfileView(session: session)
             }
             .tabItem { Label("Profile", systemImage: "person.crop.circle.fill") }
             .tag(AppTab.profile)
@@ -41,7 +43,7 @@ struct RootTabView: View {
 }
 
 #Preview {
-    RootTabView()
+    RootTabView(session: SessionController())
         .environment(GamificationCenter())
         .modelContainer(for: [AppTask.self, UserProgress.self, Achievement.self, Cosmetic.self], inMemory: true)
 }

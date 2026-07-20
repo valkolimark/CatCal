@@ -30,6 +30,9 @@ and this project follows [Semantic Versioning](https://semver.org/).
 - CloudKit sync: SwiftData now persists through the private CloudKit database (`iCloud.com.valkolimark.catcal`) via `ModelConfiguration(cloudKitDatabase:)`, with the iCloud/CloudKit entitlement and a `remote-notification` background mode. Invisible to the user — no new UI. Conflict resolution is CloudKit's default last-write-wins, noted in `Persistence.swift` as a known v1 simplification.
 - `Persistence.makeModelContainer()` falls back to a local-only store when the CloudKit container can't be opened (no iCloud account, or a build without the container provisioned), so the app stays usable offline instead of crashing at launch.
 - Tests covering the schema: no model may declare a uniqueness constraint (CloudKit rejects them), the schema covers all four models, and models round-trip through a container.
+- Sign in with Apple via `AuthenticationServices`, replacing the Cycle 1 mock auth. `SessionController` stores Apple's stable user identifier in the Keychain, re-checks the credential with Apple on launch (signing out if it was revoked), and exposes sign-out.
+- `SignInView`: paw logo, "Welcome back" heading, and "Continue with Apple" as the only enabled option; "Continue with Google" and "Continue with email" are visible but disabled with a coming-soon state. The `TabView` is gated behind a successful sign-in.
+- First real sign-in migrates any records created beforehand from the mock `ownerID` onto the real Apple identifier, scoped to the mock ID so a second Apple ID on a shared device can never absorb the first user's data. Covered by tests, including that safety property.
 
 ### Changed
 
@@ -37,5 +40,6 @@ and this project follows [Semantic Versioning](https://semver.org/).
 - `TasksView` now renders pending/completed rows as a scrolling stack of glass cards instead of a `List`, to let Liquid Glass apply cleanly.
 - All SwiftData model properties now carry default values, as CloudKit requires for non-optional attributes.
 - Dropped `@Attribute(.unique)` from `Achievement.id` and `Cosmetic.id` — CloudKit-backed stores don't support uniqueness constraints. `AchievementEngine.seedIfNeeded` already guards duplicates by fetching existing IDs first.
+- Profile's sign-out stub is now a real sign-out, behind a confirmation dialog.
 
 ### Fixed

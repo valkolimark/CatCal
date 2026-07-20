@@ -1,9 +1,9 @@
 import SwiftUI
 
-/// Minimal placeholder — Cycle 9 replaces the sign-out stub with real
-/// Sign in with Apple session management.
 struct ProfileView: View {
-    @State private var isShowingSignOutStub = false
+    let session: SessionController
+
+    @State private var isConfirmingSignOut = false
     @AppStorage(SoundService.muteDefaultsKey) private var isSoundMuted = false
 
     /// Routes writes through `SoundService` (not just `UserDefaults`) so
@@ -44,7 +44,7 @@ struct ProfileView: View {
 
                 Section {
                     Button(role: .destructive) {
-                        isShowingSignOutStub = true
+                        isConfirmingSignOut = true
                     } label: {
                         Text("Sign Out")
                     }
@@ -54,16 +54,19 @@ struct ProfileView: View {
             .scrollContentBackground(.hidden)
         }
         .navigationTitle("Profile")
-        .alert("Not available yet", isPresented: $isShowingSignOutStub) {
-            Button("OK", role: .cancel) {}
+        .confirmationDialog("Sign out of CatCal?", isPresented: $isConfirmingSignOut, titleVisibility: .visible) {
+            Button("Sign Out", role: .destructive) {
+                session.signOut()
+            }
+            Button("Cancel", role: .cancel) {}
         } message: {
-            Text("Sign-in isn't wired up yet, so there's nothing to sign out of.")
+            Text("Your progress stays synced to your iCloud account — sign back in anytime to pick up where you left off.")
         }
     }
 }
 
 #Preview {
     NavigationStack {
-        ProfileView()
+        ProfileView(session: SessionController())
     }
 }
