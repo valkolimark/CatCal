@@ -71,6 +71,12 @@ struct CompanionView: View {
             }
         }
         .navigationTitle("Buddy")
+        .onAppear {
+            SoundService.shared.startPurr()
+        }
+        .onDisappear {
+            SoundService.shared.stopPurr()
+        }
     }
 
     private var header: some View {

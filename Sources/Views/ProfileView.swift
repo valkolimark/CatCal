@@ -4,6 +4,16 @@ import SwiftUI
 /// Sign in with Apple session management.
 struct ProfileView: View {
     @State private var isShowingSignOutStub = false
+    @AppStorage(SoundService.muteDefaultsKey) private var isSoundMuted = false
+
+    /// Routes writes through `SoundService` (not just `UserDefaults`) so
+    /// toggling mute while the purr loop is playing stops it immediately.
+    private var soundMutedBinding: Binding<Bool> {
+        Binding(
+            get: { isSoundMuted },
+            set: { SoundService.shared.isMuted = $0 }
+        )
+    }
 
     private var appVersion: String {
         let info = Bundle.main.infoDictionary
@@ -24,6 +34,11 @@ struct ProfileView: View {
                         Text(appVersion)
                             .foregroundStyle(CatCalColor.textSecondary)
                     }
+                }
+                .listRowBackground(CatCalColor.surface)
+
+                Section {
+                    Toggle("Mute Sounds", isOn: soundMutedBinding)
                 }
                 .listRowBackground(CatCalColor.surface)
 

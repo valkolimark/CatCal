@@ -55,8 +55,12 @@ struct TodayView: View {
                             } else if viewModel.events.isEmpty {
                                 emptyEventsState
                             } else {
-                                ForEach(viewModel.events) { event in
-                                    EventCard(event: event)
+                                GlassEffectContainer(spacing: CatCalSpacing.md) {
+                                    VStack(spacing: CatCalSpacing.md) {
+                                        ForEach(viewModel.events) { event in
+                                            EventCard(event: event)
+                                        }
+                                    }
                                 }
                             }
 
@@ -152,7 +156,7 @@ private struct EventCard: View {
             SourceTag(source: event.source)
         }
         .padding(CatCalSpacing.md)
-        .background(CatCalColor.surface, in: RoundedRectangle(cornerRadius: CatCalRadius.card))
+        .catCalGlassCard()
     }
 
     private var timeLabel: String {

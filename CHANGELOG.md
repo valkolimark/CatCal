@@ -25,9 +25,12 @@ and this project follows [Semantic Versioning](https://semver.org/).
 - `UserProgress.catName`, defaulting to "Whiskers" — no cycle had introduced a place to name the cat yet, but Cycle 5's header needs one.
 - `RootTabView`: four-tab shell (Today, Tasks, Buddy, Profile). `ProfileView` placeholder with app version and a sign-out stub.
 - Three-step onboarding (`OnboardingView`), shown once via `hasCompletedOnboarding` in `UserDefaults`; its final step triggers the calendar-permission request.
+- Liquid Glass pass: Today's event cards and Tasks rows use `.glassEffect()` (grouped under `GlassEffectContainer`) on iOS 26, falling back to `.ultraThinMaterial` on earlier versions via the new `catCalGlassCard()` helper. The tab bar gets Liquid Glass automatically from the system on iOS 26.
+- `SoundService`: a soft chime + "mew" on task completion, a fanfare + stretch whoosh on level-up, and a loopable purr while the Buddy screen is open — all synthesized placeholder effects (`Sources/Resources/Sounds/`) played via AVFoundation with the `.ambient` session category so they respect the silent switch. Added a "Mute Sounds" toggle in Profile.
 
 ### Changed
 
 - Today's "tasks left today" teaser card now switches to the Tasks tab instead of pushing a nested `TasksView` onto Today's own navigation stack.
+- `TasksView` now renders pending/completed rows as a scrolling stack of glass cards instead of a `List`, to let Liquid Glass apply cleanly.
 
 ### Fixed

@@ -31,24 +31,36 @@ struct TasksView: View {
             if tasks.isEmpty {
                 emptyState
             } else {
-                List {
-                    Section {
-                        ForEach(pendingTasks) { task in
-                            TaskRow(task: task) {
-                                complete(task)
+                ScrollView {
+                    VStack(alignment: .leading, spacing: CatCalSpacing.lg) {
+                        GlassEffectContainer(spacing: CatCalSpacing.sm) {
+                            VStack(spacing: CatCalSpacing.sm) {
+                                ForEach(pendingTasks) { task in
+                                    TaskRow(task: task) {
+                                        complete(task)
+                                    }
+                                }
                             }
                         }
-                    }
 
-                    if !completedTasks.isEmpty {
-                        Section("Completed") {
-                            ForEach(completedTasks) { task in
-                                CompletedTaskRow(task: task)
+                        if !completedTasks.isEmpty {
+                            VStack(alignment: .leading, spacing: CatCalSpacing.sm) {
+                                Text("Completed")
+                                    .font(CatCalFont.headline(15))
+                                    .foregroundStyle(CatCalColor.textSecondary)
+
+                                GlassEffectContainer(spacing: CatCalSpacing.sm) {
+                                    VStack(spacing: CatCalSpacing.sm) {
+                                        ForEach(completedTasks) { task in
+                                            CompletedTaskRow(task: task)
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
+                    .padding(CatCalSpacing.md)
                 }
-                .scrollContentBackground(.hidden)
             }
         }
         .navigationTitle("Tasks")
@@ -120,8 +132,8 @@ private struct TaskRow: View {
 
             XPTag(value: task.xpValue, muted: false)
         }
-        .padding(.vertical, CatCalSpacing.xs)
-        .listRowBackground(CatCalColor.surface)
+        .padding(CatCalSpacing.md)
+        .catCalGlassCard(cornerRadius: CatCalRadius.control)
     }
 }
 
@@ -143,8 +155,8 @@ private struct CompletedTaskRow: View {
 
             XPTag(value: task.xpValue, muted: true)
         }
-        .padding(.vertical, CatCalSpacing.xs)
-        .listRowBackground(CatCalColor.surface)
+        .padding(CatCalSpacing.md)
+        .catCalGlassCard(cornerRadius: CatCalRadius.control)
     }
 }
 

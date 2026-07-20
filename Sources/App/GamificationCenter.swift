@@ -35,6 +35,7 @@ final class GamificationCenter {
 
     func showXPToast(_ amount: Int) {
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        SoundService.shared.playTaskCompletion()
 
         toastDismissTask?.cancel()
         toast = Toast(id: UUID(), message: "+\(amount) XP")
@@ -52,6 +53,9 @@ final class GamificationCenter {
         guard leveledUp || achievement != nil else { return }
 
         UINotificationFeedbackGenerator().notificationOccurred(.success)
+        if leveledUp {
+            SoundService.shared.playLevelUp()
+        }
 
         celebration = Celebration(
             id: UUID(),
