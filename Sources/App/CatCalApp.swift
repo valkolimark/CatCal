@@ -6,6 +6,8 @@ struct CatCalApp: App {
     @State private var gamificationCenter = GamificationCenter()
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
 
+    private let modelContainer = Persistence.makeModelContainer()
+
     var body: some Scene {
         WindowGroup {
             Group {
@@ -36,11 +38,6 @@ struct CatCalApp: App {
             .animation(.spring(duration: 0.35), value: gamificationCenter.toast)
             .animation(.spring(duration: 0.35), value: gamificationCenter.celebration)
         }
-        .modelContainer(for: [
-            AppTask.self,
-            UserProgress.self,
-            Achievement.self,
-            Cosmetic.self
-        ])
+        .modelContainer(modelContainer)
     }
 }

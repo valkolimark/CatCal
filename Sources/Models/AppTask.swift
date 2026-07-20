@@ -1,14 +1,17 @@
 import Foundation
 import SwiftData
 
+/// CloudKit requires every non-optional property to carry a default value,
+/// so the stored properties below are all defaulted even though the
+/// initializer sets them explicitly.
 @Model
 final class AppTask {
-    var title: String
-    var notes: String
+    var title: String = ""
+    var notes: String = ""
     var dueDate: Date?
-    var isCompleted: Bool
-    var xpValue: Int
-    var ownerID: String
+    var isCompleted: Bool = false
+    var xpValue: Int = 5
+    var ownerID: String = ""
 
     init(
         title: String,
