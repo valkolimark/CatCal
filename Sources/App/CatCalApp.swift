@@ -4,11 +4,18 @@ import SwiftUI
 @main
 struct CatCalApp: App {
     @State private var gamificationCenter = GamificationCenter()
+    @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
 
     var body: some Scene {
         WindowGroup {
-            NavigationStack {
-                TodayView()
+            Group {
+                if hasCompletedOnboarding {
+                    RootTabView()
+                } else {
+                    OnboardingView {
+                        hasCompletedOnboarding = true
+                    }
+                }
             }
             .environment(gamificationCenter)
             .overlay(alignment: .top) {

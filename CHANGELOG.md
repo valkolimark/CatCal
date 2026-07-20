@@ -23,7 +23,11 @@ and this project follows [Semantic Versioning](https://semver.org/).
 - `ProgressEngine.updateStreak`: daily streak tracking (extend on a consecutive day, reset on a gap), with unit tests.
 - `CompanionView`: cat name/stage/level header with a stage-tinted avatar ring, a mood line driven by whether any task is overdue, an XP progress bar to the next level, and a 2-column Collars grid (locked cells dimmed with the achievement name needed). All wired to real `ProgressEngine`/`Achievement`/`Cosmetic` data.
 - `UserProgress.catName`, defaulting to "Whiskers" — no cycle had introduced a place to name the cat yet, but Cycle 5's header needs one.
+- `RootTabView`: four-tab shell (Today, Tasks, Buddy, Profile). `ProfileView` placeholder with app version and a sign-out stub.
+- Three-step onboarding (`OnboardingView`), shown once via `hasCompletedOnboarding` in `UserDefaults`; its final step triggers the calendar-permission request.
 
 ### Changed
+
+- Today's "tasks left today" teaser card now switches to the Tasks tab instead of pushing a nested `TasksView` onto Today's own navigation stack.
 
 ### Fixed

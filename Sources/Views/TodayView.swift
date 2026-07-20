@@ -11,10 +11,6 @@ private extension CalendarSource {
     }
 }
 
-enum TodayDestination: Hashable {
-    case tasks
-}
-
 struct TodayView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(GamificationCenter.self) private var gamificationCenter
@@ -23,7 +19,12 @@ struct TodayView: View {
 
     @State private var viewModel = TodayViewModel()
 
-    init() {
+    /// Switches the root TabView to the Tasks tab. Nil (and the card
+    /// becomes inert) when previewed outside `RootTabView`.
+    var onSelectTasks: (() -> Void)?
+
+    init(onSelectTasks: (() -> Void)? = nil) {
+        self.onSelectTasks = onSelectTasks
         let ownerID = CurrentUser.id
         _progressRecords = Query(filter: #Predicate<UserProgress> { $0.ownerID == ownerID })
         _pendingTasks = Query(
@@ -59,7 +60,7 @@ struct TodayView: View {
                                 }
                             }
 
-                            TasksTeaserCard(remaining: pendingTasks.count)
+                            TasksTeaserCard(remaining: pendingTasks.count, onTap: onSelectTasks)
                         }
                         .padding(CatCalSpacing.md)
                     }
@@ -79,12 +80,6 @@ struct TodayView: View {
 
             if let first = unlocked.first {
                 gamificationCenter.celebrate(levelUp: nil, achievement: first.achievement, cosmetic: first.cosmetic)
-            }
-        }
-        .navigationDestination(for: TodayDestination.self) { destination in
-            switch destination {
-            case .tasks:
-                TasksView()
             }
         }
     }
@@ -180,9 +175,12 @@ private struct SourceTag: View {
 
 private struct TasksTeaserCard: View {
     let remaining: Int
+    let onTap: (() -> Void)?
 
     var body: some View {
-        NavigationLink(value: TodayDestination.tasks) {
+        Button {
+            onTap?()
+        } label: {
             HStack {
                 VStack(alignment: .leading, spacing: CatCalSpacing.xs) {
                     Text("\(remaining) task\(remaining == 1 ? "" : "s") left today")
