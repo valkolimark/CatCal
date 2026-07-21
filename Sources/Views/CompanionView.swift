@@ -52,25 +52,38 @@ struct CompanionView: View {
 
     var body: some View {
         ZStack {
-            CatCalColor.appBackground.ignoresSafeArea()
+            CatCalBackground()
 
-            ScrollView {
-                VStack(spacing: CatCalSpacing.lg) {
-                    header
-                    avatarSection
-
-                    XPProgressBar(
-                        currentXP: ProgressEngine.xpIntoCurrentLevel(forTotalXP: totalXP),
-                        neededXP: ProgressEngine.xpPerLevel
+            VStack(spacing: 0) {
+                ScreenHeader(title: catName, subtitle: "\(stage.rawValue) stage") {
+                    StatPill(
+                        systemImage: "star.fill",
+                        text: "Lv \(level)",
+                        iconTint: stage.accentColor
                     )
-                    .padding(.horizontal, CatCalSpacing.md)
-
-                    collarsSection
                 }
-                .padding(.vertical, CatCalSpacing.md)
+
+                ScrollView {
+                    VStack(spacing: CatCalSpacing.lg) {
+                        avatarSection
+
+                        XPProgressBar(
+                            currentXP: ProgressEngine.xpIntoCurrentLevel(forTotalXP: totalXP),
+                            neededXP: ProgressEngine.xpPerLevel
+                        )
+                        .padding(CatCalSpacing.md)
+                        .catCalGlassCard()
+
+                        collarsSection
+                    }
+                    .padding(.horizontal, CatCalSpacing.screen)
+                    .padding(.bottom, CatCalSpacing.tabBarClearance)
+                }
+                .scrollIndicators(.hidden)
             }
+            .padding(.top, CatCalSpacing.sm)
         }
-        .navigationTitle("Buddy")
+        .toolbar(.hidden, for: .navigationBar)
         .onAppear {
             SoundService.shared.startPurr()
         }
@@ -79,47 +92,22 @@ struct CompanionView: View {
         }
     }
 
-    private var header: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: CatCalSpacing.xs) {
-                Text(catName)
-                    .font(CatCalFont.title(24))
-                    .foregroundStyle(CatCalColor.textPrimary)
-                Text("\(stage.rawValue) stage")
-                    .font(CatCalFont.body())
-                    .foregroundStyle(CatCalColor.textSecondary)
-            }
-
-            Spacer()
-
-            LevelPill(level: level)
-        }
-        .padding(.horizontal, CatCalSpacing.md)
-    }
-
     private var avatarSection: some View {
         VStack(spacing: CatCalSpacing.sm) {
-            ZStack {
-                Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: [CatCalColor.brandPrimary, CatCalColor.brandSecondary],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .frame(width: 160, height: 160)
-                    .overlay(Circle().stroke(stage.accentColor, lineWidth: 4))
-
-                Image(systemName: "cat.fill")
-                    .font(.system(size: 72))
-                    .foregroundStyle(.white)
-            }
+            CatBuddyImage(height: 200)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, CatCalSpacing.sm)
+                .background(
+                    Circle()
+                        .fill(stage.accentColor.opacity(0.12))
+                        .frame(width: 220, height: 220)
+                )
 
             Text(moodLine)
-                .font(CatCalFont.body())
+                .font(CatCalFont.body(16))
                 .foregroundStyle(CatCalColor.textSecondary)
         }
+        .padding(.top, CatCalSpacing.sm)
     }
 
     private var collarsSection: some View {
@@ -127,32 +115,23 @@ struct CompanionView: View {
             Text("Collars")
                 .font(CatCalFont.headline(18))
                 .foregroundStyle(CatCalColor.textPrimary)
-                .padding(.horizontal, CatCalSpacing.md)
 
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: CatCalSpacing.md) {
+            // Fixed row height rather than intrinsic: locked cells carry an
+            // extra "how to unlock" line, and a ragged grid looks broken.
+            LazyVGrid(
+                columns: [GridItem(.flexible()), GridItem(.flexible())],
+                spacing: CatCalSpacing.md
+            ) {
                 ForEach(collarCosmetics) { cosmetic in
                     CosmeticCell(cosmetic: cosmetic, achievementTitle: achievementTitle(forCosmeticID: cosmetic.id))
+                        .frame(height: 168)
                 }
             }
-            .padding(.horizontal, CatCalSpacing.md)
         }
     }
 
     private func achievementTitle(forCosmeticID id: String) -> String? {
         achievements.first { $0.id == id }?.title
-    }
-}
-
-private struct LevelPill: View {
-    let level: Int
-
-    var body: some View {
-        Text("Lv \(level)")
-            .font(CatCalFont.headline(15))
-            .foregroundStyle(CatCalColor.textPrimary)
-            .padding(.horizontal, CatCalSpacing.md)
-            .padding(.vertical, CatCalSpacing.sm)
-            .background(CatCalColor.surface, in: Capsule())
     }
 }
 
@@ -165,14 +144,14 @@ private struct XPProgressBar: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: CatCalSpacing.xs) {
+        VStack(alignment: .leading, spacing: CatCalSpacing.sm) {
             GeometryReader { proxy in
                 ZStack(alignment: .leading) {
-                    Capsule().fill(CatCalColor.surface)
+                    Capsule().fill(CatCalColor.textSecondary.opacity(0.18))
                     Capsule()
                         .fill(
                             LinearGradient(
-                                colors: [CatCalColor.brandPrimary, CatCalColor.xpGold],
+                                colors: [CatCalColor.xpGreen, CatCalColor.xpGold],
                                 startPoint: .leading,
                                 endPoint: .trailing
                             )
@@ -183,7 +162,7 @@ private struct XPProgressBar: View {
             .frame(height: 12)
 
             Text("\(currentXP) / \(neededXP) XP to next level")
-                .font(CatCalFont.caption())
+                .font(CatCalFont.caption(13))
                 .foregroundStyle(CatCalColor.textSecondary)
         }
     }
@@ -195,9 +174,11 @@ private struct CosmeticCell: View {
 
     var body: some View {
         VStack(spacing: CatCalSpacing.sm) {
+            Spacer(minLength: 0)
+
             ZStack {
                 Circle()
-                    .fill(cosmetic.isUnlocked ? CatCalColor.brandPrimary.opacity(0.15) : CatCalColor.appBackground)
+                    .fill(cosmetic.isUnlocked ? CatCalColor.brandPrimary.opacity(0.15) : CatCalColor.textSecondary.opacity(0.12))
                     .frame(width: 56, height: 56)
 
                 Image(systemName: cosmetic.isUnlocked ? "seal.fill" : "lock.fill")
@@ -206,21 +187,23 @@ private struct CosmeticCell: View {
             }
 
             Text(cosmetic.name)
-                .font(CatCalFont.caption(12))
+                .font(CatCalFont.headline(15))
                 .foregroundStyle(cosmetic.isUnlocked ? CatCalColor.textPrimary : CatCalColor.textSecondary)
                 .multilineTextAlignment(.center)
 
             if !cosmetic.isUnlocked, let achievementTitle {
                 Text(achievementTitle)
-                    .font(CatCalFont.caption(10))
+                    .font(CatCalFont.caption(11))
                     .foregroundStyle(CatCalColor.textSecondary)
                     .multilineTextAlignment(.center)
             }
+
+            Spacer(minLength: 0)
         }
         .padding(CatCalSpacing.md)
         .frame(maxWidth: .infinity)
-        .background(CatCalColor.surface, in: RoundedRectangle(cornerRadius: CatCalRadius.card))
-        .opacity(cosmetic.isUnlocked ? 1 : 0.55)
+        .catCalGlassCard()
+        .opacity(cosmetic.isUnlocked ? 1 : 0.7)
     }
 }
 

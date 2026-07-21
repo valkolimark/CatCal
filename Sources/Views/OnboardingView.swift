@@ -4,23 +4,28 @@ private struct OnboardingStep {
     let icon: String
     let title: String
     let message: String
+    /// The cat itself carries the first step; the rest lean on a symbol.
+    let showsCat: Bool
 }
 
 private let onboardingSteps: [OnboardingStep] = [
     OnboardingStep(
         icon: "cat.fill",
         title: "Meet your companion",
-        message: "A cat who grows as you get things done."
+        message: "A cat who grows as you get things done.",
+        showsCat: true
     ),
     OnboardingStep(
         icon: "calendar",
         title: "Connect your calendars",
-        message: "See Google, Outlook, and iCloud events in one unified view."
+        message: "See Google, Outlook, and iCloud events in one unified view.",
+        showsCat: false
     ),
     OnboardingStep(
         icon: "sparkles",
         title: "Level up together",
-        message: "Earn XP for every task and watch your cat grow."
+        message: "Earn XP for every task and watch your cat grow.",
+        showsCat: false
     )
 ]
 
@@ -32,12 +37,7 @@ struct OnboardingView: View {
 
     var body: some View {
         ZStack {
-            LinearGradient(
-                colors: [CatCalColor.brandPrimary, CatCalColor.brandSecondary],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
+            CatCalBackground()
 
             VStack(spacing: CatCalSpacing.lg) {
                 TabView(selection: $step) {
@@ -47,15 +47,16 @@ struct OnboardingView: View {
                     }
                 }
                 .tabViewStyle(.page(indexDisplayMode: .always))
-                .indexViewStyle(.page(backgroundDisplayMode: .always))
+                .indexViewStyle(.page(backgroundDisplayMode: .interactive))
 
                 Button(action: advance) {
                     Text(step == onboardingSteps.count - 1 ? "Get Started" : "Next")
-                        .font(CatCalFont.headline())
-                        .foregroundStyle(CatCalColor.brandPrimary)
+                        .font(CatCalFont.headline(18))
+                        .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, CatCalSpacing.sm)
-                        .background(.white, in: Capsule())
+                        .frame(height: 54)
+                        .background(CatCalColor.brandPrimary, in: Capsule())
+                        .shadow(color: CatCalColor.brandPrimary.opacity(0.3), radius: 12, y: 6)
                 }
                 .padding(.horizontal, CatCalSpacing.xl)
                 .padding(.bottom, CatCalSpacing.xl)
@@ -81,21 +82,33 @@ private struct OnboardingStepView: View {
     let step: OnboardingStep
 
     var body: some View {
-        VStack(spacing: CatCalSpacing.md) {
-            Image(systemName: step.icon)
-                .font(.system(size: 64))
-                .foregroundStyle(.white)
+        VStack(spacing: CatCalSpacing.lg) {
+            Spacer()
 
-            Text(step.title)
-                .font(CatCalFont.title(26))
-                .foregroundStyle(.white)
-                .multilineTextAlignment(.center)
+            if step.showsCat {
+                CatBuddyImage(height: 220)
+            } else {
+                Image(systemName: step.icon)
+                    .font(.system(size: 64))
+                    .foregroundStyle(CatCalColor.brandPrimary)
+                    .frame(width: 140, height: 140)
+                    .catCalGlassCard(cornerRadius: 44)
+            }
 
-            Text(step.message)
-                .font(CatCalFont.body())
-                .foregroundStyle(.white.opacity(0.85))
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, CatCalSpacing.xl)
+            VStack(spacing: CatCalSpacing.sm) {
+                Text(step.title)
+                    .font(CatCalFont.largeTitle(30))
+                    .foregroundStyle(CatCalColor.textPrimary)
+                    .multilineTextAlignment(.center)
+
+                Text(step.message)
+                    .font(CatCalFont.body(17))
+                    .foregroundStyle(CatCalColor.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, CatCalSpacing.lg)
+            }
+
+            Spacer()
         }
         .padding(.horizontal, CatCalSpacing.lg)
     }

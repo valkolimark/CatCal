@@ -12,10 +12,20 @@ struct CatCalApp: App {
 
     private let modelContainer = Persistence.makeModelContainer()
 
+    /// `-seedSampleData` is for looking at the populated app, so it skips
+    /// onboarding too rather than making every launch page through it.
+    private var showsOnboarding: Bool {
+        #if DEBUG
+        !hasCompletedOnboarding && !SampleData.isEnabled
+        #else
+        !hasCompletedOnboarding
+        #endif
+    }
+
     var body: some Scene {
         WindowGroup {
             Group {
-                if !hasCompletedOnboarding {
+                if showsOnboarding {
                     OnboardingView {
                         hasCompletedOnboarding = true
                     }
@@ -33,6 +43,12 @@ struct CatCalApp: App {
                 }
             }
             .task {
+                #if DEBUG
+                if SampleData.isEnabled {
+                    calendarAggregator.register(SampleData.CalendarSource())
+                    SampleData.seedTasks(context: modelContainer.mainContext)
+                }
+                #endif
                 await session.restore()
             }
             .animation(.easeInOut(duration: 0.25), value: session.isSignedIn)

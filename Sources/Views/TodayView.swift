@@ -1,7 +1,7 @@
 import SwiftData
 import SwiftUI
 
-private extension CalendarSource {
+extension CalendarSource {
     var tagColor: Color {
         switch self {
         case .google: CatCalColor.sourceGoogle
@@ -37,43 +37,38 @@ struct TodayView: View {
         progressRecords.first?.currentStreak ?? 0
     }
 
+    private var pendingXP: Int {
+        pendingTasks.reduce(0) { $0 + $1.xpValue }
+    }
+
     var body: some View {
-        ZStack {
-            CatCalColor.appBackground.ignoresSafeArea()
+        ZStack(alignment: .bottom) {
+            CatCalBackground()
 
             VStack(spacing: 0) {
-                header
+                ScreenHeader(
+                    title: "Today",
+                    subtitle: Date().formatted(.dateTime.weekday(.wide).month(.wide).day())
+                ) {
+                    StatPill(systemImage: "flame.fill", text: "\(streak)")
+                }
 
                 if viewModel.showsPermissionState {
                     PermissionDeniedView()
                 } else {
-                    ScrollView {
-                        VStack(spacing: CatCalSpacing.md) {
-                            ForEach(viewModel.failures) { failure in
-                                SourceFailureBanner(failure: failure)
-                            }
-
-                            if viewModel.isLoading {
-                                ProgressView()
-                                    .padding(.top, CatCalSpacing.xl)
-                            } else if viewModel.events.isEmpty {
-                                emptyEventsState
-                            } else {
-                                GlassEffectContainer(spacing: CatCalSpacing.md) {
-                                    VStack(spacing: CatCalSpacing.md) {
-                                        ForEach(viewModel.events) { event in
-                                            EventCard(event: event)
-                                        }
-                                    }
-                                }
-                            }
-
-                            TasksTeaserCard(remaining: pendingTasks.count, onTap: onSelectTasks)
-                        }
-                        .padding(CatCalSpacing.md)
-                    }
+                    content
                 }
             }
+            .padding(.top, CatCalSpacing.sm)
+
+            // Sits behind the tab bar and below the scrolling content, so
+            // the day's list scrolls past it rather than pushing it around.
+            CatBuddyImage()
+                .padding(.bottom, CatCalSpacing.xl + CatCalSpacing.md)
+                .allowsHitTesting(false)
+        }
+        .refreshable {
+            await viewModel.load(using: aggregator)
         }
         .task {
             AchievementEngine.seedIfNeeded(context: modelContext)
@@ -92,17 +87,34 @@ struct TodayView: View {
         }
     }
 
-    private var header: some View {
-        HStack {
-            Text(Date(), format: .dateTime.weekday(.wide).month(.wide).day())
-                .font(CatCalFont.title(24))
-                .foregroundStyle(CatCalColor.textPrimary)
+    private var content: some View {
+        ScrollView {
+            VStack(spacing: CatCalSpacing.md) {
+                ForEach(viewModel.failures) { failure in
+                    SourceFailureBanner(failure: failure)
+                }
 
-            Spacer()
+                if viewModel.isLoading && viewModel.events.isEmpty {
+                    ProgressView()
+                        .padding(.top, CatCalSpacing.xl)
+                } else if viewModel.events.isEmpty {
+                    emptyEventsState
+                } else {
+                    GlassEffectContainer(spacing: CatCalSpacing.md) {
+                        VStack(spacing: CatCalSpacing.md) {
+                            ForEach(viewModel.events) { event in
+                                EventCard(event: event)
+                            }
+                        }
+                    }
+                }
 
-            StreakPill(streak: streak)
+                TasksTeaserCard(remaining: pendingTasks.count, xp: pendingXP, onTap: onSelectTasks)
+            }
+            .padding(.horizontal, CatCalSpacing.screen)
+            .padding(.bottom, CatCalSpacing.tabBarClearance + 140)
         }
-        .padding(CatCalSpacing.md)
+        .scrollIndicators(.hidden)
     }
 
     private var emptyEventsState: some View {
@@ -114,24 +126,7 @@ struct TodayView: View {
                 .font(CatCalFont.body())
                 .foregroundStyle(CatCalColor.textSecondary)
         }
-        .padding(.top, CatCalSpacing.xl)
-    }
-}
-
-private struct StreakPill: View {
-    let streak: Int
-
-    var body: some View {
-        HStack(spacing: CatCalSpacing.xs) {
-            Image(systemName: "flame.fill")
-                .foregroundStyle(CatCalColor.warning)
-            Text("\(streak)")
-                .font(CatCalFont.headline(15))
-                .foregroundStyle(CatCalColor.textPrimary)
-        }
-        .padding(.horizontal, CatCalSpacing.md)
-        .padding(.vertical, CatCalSpacing.sm)
-        .background(CatCalColor.surface, in: Capsule())
+        .padding(.vertical, CatCalSpacing.xl)
     }
 }
 
@@ -158,7 +153,7 @@ private struct SourceFailureBanner: View {
             Spacer(minLength: 0)
         }
         .padding(CatCalSpacing.md)
-        .background(CatCalColor.warning.opacity(0.12), in: RoundedRectangle(cornerRadius: CatCalRadius.control))
+        .background(CatCalColor.warning.opacity(0.12), in: RoundedRectangle(cornerRadius: CatCalRadius.control, style: .continuous))
     }
 }
 
@@ -167,72 +162,82 @@ private struct EventCard: View {
 
     var body: some View {
         HStack(spacing: CatCalSpacing.md) {
-            RoundedRectangle(cornerRadius: CatCalRadius.pill)
+            Capsule()
                 .fill(event.source.tagColor)
-                .frame(width: 4)
+                .frame(width: 5)
 
-            VStack(alignment: .leading, spacing: CatCalSpacing.xs) {
+            VStack(alignment: .leading, spacing: 3) {
                 Text(event.title)
-                    .font(CatCalFont.headline())
+                    .font(CatCalFont.headline(19))
                     .foregroundStyle(CatCalColor.textPrimary)
                     .lineLimit(2)
 
                 Text(timeLabel)
-                    .font(CatCalFont.caption())
+                    .font(CatCalFont.body(15))
                     .foregroundStyle(CatCalColor.textSecondary)
             }
 
-            Spacer()
+            Spacer(minLength: CatCalSpacing.sm)
 
-            SourceTag(source: event.source)
+            TintedChip(text: event.source.label, tint: event.source.tagColor)
         }
         .padding(CatCalSpacing.md)
+        .frame(minHeight: 76)
         .catCalGlassCard()
+        .accessibilityElement(children: .combine)
     }
 
     private var timeLabel: String {
-        event.isAllDay ? "All day" : event.startDate.formatted(date: .omitted, time: .shortened)
-    }
-}
-
-private struct SourceTag: View {
-    let source: CalendarSource
-
-    var body: some View {
-        Text(source.label)
-            .font(CatCalFont.caption(11))
-            .foregroundStyle(source.tagColor)
-            .padding(.horizontal, CatCalSpacing.sm)
-            .padding(.vertical, 4)
-            .background(source.tagColor.opacity(0.15), in: Capsule())
+        guard !event.isAllDay else { return "All day" }
+        let start = event.startDate.formatted(date: .omitted, time: .shortened)
+        let end = event.endDate.formatted(date: .omitted, time: .shortened)
+        return "\(start)–\(end)"
     }
 }
 
 private struct TasksTeaserCard: View {
     let remaining: Int
+    let xp: Int
     let onTap: (() -> Void)?
+
+    /// Broken deliberately after the dash: the two halves are "what's left"
+    /// and "what it's worth", and letting them reflow mid-clause reads worse
+    /// than a fixed break.
+    private var message: String {
+        guard remaining > 0 else { return "All caught up for today" }
+        return "\(remaining) task\(remaining == 1 ? "" : "s") left today —\nfinish them for +\(xp) XP"
+    }
 
     var body: some View {
         Button {
             onTap?()
         } label: {
-            HStack {
-                VStack(alignment: .leading, spacing: CatCalSpacing.xs) {
-                    Text("\(remaining) task\(remaining == 1 ? "" : "s") left today")
-                        .font(CatCalFont.headline())
-                        .foregroundStyle(CatCalColor.textPrimary)
-                    Text("Tap to see your list")
-                        .font(CatCalFont.caption())
-                        .foregroundStyle(CatCalColor.textSecondary)
-                }
-                Spacer()
+            HStack(spacing: CatCalSpacing.md) {
+                Image(systemName: "list.clipboard.fill")
+                    .font(.system(size: 20))
+                    .foregroundStyle(CatCalColor.brandPrimary)
+                    .frame(width: 44, height: 44)
+                    .background(CatCalColor.surface.opacity(0.7), in: RoundedRectangle(cornerRadius: CatCalRadius.tile, style: .continuous))
+
+                Text(message)
+                    .font(CatCalFont.body(16))
+                    .foregroundStyle(CatCalColor.textPrimary)
+                    .multilineTextAlignment(.leading)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Spacer(minLength: CatCalSpacing.sm)
+
                 Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(CatCalColor.textSecondary)
+                    .frame(width: 30, height: 30)
+                    .background(CatCalColor.surface.opacity(0.7), in: Circle())
             }
             .padding(CatCalSpacing.md)
-            .background(CatCalColor.brandPrimary.opacity(0.12), in: RoundedRectangle(cornerRadius: CatCalRadius.card))
+            .catCalGlassCard()
         }
         .buttonStyle(.plain)
+        .disabled(onTap == nil)
     }
 }
 
@@ -263,8 +268,8 @@ private struct PermissionDeniedView: View {
                 Text("Open Settings")
                     .font(CatCalFont.headline())
                     .foregroundStyle(.white)
-                    .padding(.horizontal, CatCalSpacing.lg)
-                    .padding(.vertical, CatCalSpacing.sm)
+                    .padding(.horizontal, CatCalSpacing.screen)
+                    .padding(.vertical, CatCalSpacing.sm + 2)
                     .background(CatCalColor.brandPrimary, in: Capsule())
             }
             .padding(.top, CatCalSpacing.sm)
@@ -277,10 +282,8 @@ private struct PermissionDeniedView: View {
 }
 
 #Preview {
-    NavigationStack {
-        TodayView()
-    }
-    .environment(GamificationCenter())
-    .environment(CalendarAggregator(sources: [EventKitCalendarSource()]))
-    .modelContainer(for: [AppTask.self, UserProgress.self, Achievement.self, Cosmetic.self, ConnectedAccount.self], inMemory: true)
+    TodayView()
+        .environment(GamificationCenter())
+        .environment(CalendarAggregator(sources: [EventKitCalendarSource()]))
+        .modelContainer(for: [AppTask.self, UserProgress.self, Achievement.self, Cosmetic.self, ConnectedAccount.self], inMemory: true)
 }

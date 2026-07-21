@@ -24,63 +24,88 @@ struct TasksView: View {
         tasks.filter { $0.isCompleted }
     }
 
+    /// XP banked so far, shown in the header pill.
+    private var earnedXP: Int {
+        completedTasks.reduce(0) { $0 + $1.xpValue }
+    }
+
     var body: some View {
-        ZStack {
-            CatCalColor.appBackground.ignoresSafeArea()
+        ZStack(alignment: .bottom) {
+            CatCalBackground()
 
-            if tasks.isEmpty {
-                emptyState
-            } else {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: CatCalSpacing.lg) {
-                        GlassEffectContainer(spacing: CatCalSpacing.sm) {
-                            VStack(spacing: CatCalSpacing.sm) {
-                                ForEach(pendingTasks) { task in
-                                    TaskRow(task: task) {
-                                        complete(task)
-                                    }
-                                }
-                            }
-                        }
-
-                        if !completedTasks.isEmpty {
-                            VStack(alignment: .leading, spacing: CatCalSpacing.sm) {
-                                Text("Completed")
-                                    .font(CatCalFont.headline(15))
-                                    .foregroundStyle(CatCalColor.textSecondary)
-
-                                GlassEffectContainer(spacing: CatCalSpacing.sm) {
-                                    VStack(spacing: CatCalSpacing.sm) {
-                                        ForEach(completedTasks) { task in
-                                            CompletedTaskRow(task: task)
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    .padding(CatCalSpacing.md)
+            VStack(spacing: 0) {
+                ScreenHeader(
+                    title: "Tasks",
+                    subtitle: "\(pendingTasks.count) remaining today"
+                ) {
+                    StatPill(
+                        systemImage: "bolt.fill",
+                        text: "+\(earnedXP) XP",
+                        tint: CatCalColor.xpGreen,
+                        iconTint: CatCalColor.xpGreen
+                    )
                 }
+
+                content
             }
-        }
-        .navigationTitle("Tasks")
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button("Add Task", systemImage: "plus") {
-                    isShowingAddTask = true
-                }
-            }
+            .padding(.top, CatCalSpacing.sm)
+
+            CatBuddyImage(height: 170)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.leading, CatCalSpacing.sm)
+                .padding(.bottom, CatCalSpacing.xl + CatCalSpacing.md)
+                .allowsHitTesting(false)
         }
         .sheet(isPresented: $isShowingAddTask) {
             AddTaskSheet(modelContext: modelContext)
         }
     }
 
+    private var content: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: CatCalSpacing.lg) {
+                if !pendingTasks.isEmpty {
+                    GlassEffectContainer(spacing: CatCalSpacing.sm) {
+                        VStack(spacing: CatCalSpacing.sm + 2) {
+                            ForEach(pendingTasks) { task in
+                                TaskRow(task: task) {
+                                    complete(task)
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if !completedTasks.isEmpty {
+                    VStack(alignment: .leading, spacing: CatCalSpacing.sm) {
+                        Text("Completed")
+                            .font(CatCalFont.body(16))
+                            .foregroundStyle(CatCalColor.textSecondary)
+
+                        GlassEffectContainer(spacing: CatCalSpacing.sm) {
+                            VStack(spacing: CatCalSpacing.sm + 2) {
+                                ForEach(completedTasks) { task in
+                                    CompletedTaskRow(task: task)
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if tasks.isEmpty {
+                    emptyState
+                }
+
+                AddTaskCard { isShowingAddTask = true }
+            }
+            .padding(.horizontal, CatCalSpacing.screen)
+            .padding(.bottom, CatCalSpacing.tabBarClearance + 120)
+        }
+        .scrollIndicators(.hidden)
+    }
+
     private var emptyState: some View {
         VStack(spacing: CatCalSpacing.sm) {
-            Image(systemName: "checkmark.circle")
-                .font(.system(size: 40))
-                .foregroundStyle(CatCalColor.textSecondary)
             Text("No tasks yet")
                 .font(CatCalFont.headline(18))
                 .foregroundStyle(CatCalColor.textPrimary)
@@ -88,10 +113,12 @@ struct TasksView: View {
                 .font(CatCalFont.body())
                 .foregroundStyle(CatCalColor.textSecondary)
         }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, CatCalSpacing.xl)
     }
 
     private func complete(_ task: AppTask) {
-        withAnimation {
+        withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
             task.isCompleted = true
         }
 
@@ -118,21 +145,25 @@ private struct TaskRow: View {
     var body: some View {
         HStack(spacing: CatCalSpacing.md) {
             Button(action: onComplete) {
-                Image(systemName: "circle")
-                    .font(.system(size: 22))
-                    .foregroundStyle(CatCalColor.textSecondary)
+                Circle()
+                    .strokeBorder(CatCalColor.textSecondary.opacity(0.55), lineWidth: 2)
+                    .frame(width: 27, height: 27)
+                    .contentShape(Circle())
             }
             .buttonStyle(.plain)
+            .accessibilityLabel("Complete \(task.title)")
 
             Text(task.title)
-                .font(CatCalFont.body(16))
+                .font(CatCalFont.headline(17))
                 .foregroundStyle(CatCalColor.textPrimary)
+                .lineLimit(2)
 
-            Spacer()
+            Spacer(minLength: CatCalSpacing.sm)
 
-            XPTag(value: task.xpValue, muted: false)
+            TintedChip(text: "+\(task.xpValue) XP", tint: CatCalColor.xpGreen)
         }
-        .padding(CatCalSpacing.md)
+        .padding(.horizontal, CatCalSpacing.md)
+        .frame(minHeight: 64)
         .catCalGlassCard(cornerRadius: CatCalRadius.control)
     }
 }
@@ -143,38 +174,47 @@ private struct CompletedTaskRow: View {
     var body: some View {
         HStack(spacing: CatCalSpacing.md) {
             Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 22))
-                .foregroundStyle(CatCalColor.sourceSuccess)
+                .font(.system(size: 27))
+                .symbolRenderingMode(.palette)
+                .foregroundStyle(.white, CatCalColor.sourceSuccess)
 
             Text(task.title)
-                .font(CatCalFont.body(16))
+                .font(CatCalFont.headline(17))
                 .foregroundStyle(CatCalColor.textSecondary)
+                .lineLimit(2)
                 .strikethrough()
 
-            Spacer()
+            Spacer(minLength: CatCalSpacing.sm)
 
-            XPTag(value: task.xpValue, muted: true)
+            TintedChip(text: "+\(task.xpValue) XP", tint: CatCalColor.xpGreen, isMuted: true)
         }
-        .padding(CatCalSpacing.md)
+        .padding(.horizontal, CatCalSpacing.md)
+        .frame(minHeight: 64)
         .catCalGlassCard(cornerRadius: CatCalRadius.control)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(task.title), completed")
     }
 }
 
-private struct XPTag: View {
-    let value: Int
-    let muted: Bool
-
-    private var tint: Color {
-        muted ? CatCalColor.textSecondary : CatCalColor.xpGold
-    }
+/// Reads as one more row in the list rather than a floating "+" button —
+/// adding a task is part of the list's flow, not an action hovering over it.
+private struct AddTaskCard: View {
+    let onTap: () -> Void
 
     var body: some View {
-        Text("+\(value) XP")
-            .font(CatCalFont.caption(11))
-            .foregroundStyle(tint)
-            .padding(.horizontal, CatCalSpacing.sm)
-            .padding(.vertical, 4)
-            .background(tint.opacity(0.15), in: Capsule())
+        Button(action: onTap) {
+            HStack(spacing: CatCalSpacing.sm) {
+                Image(systemName: "plus")
+                    .font(.system(size: 19, weight: .semibold))
+                Text("Add task")
+                    .font(CatCalFont.headline(18))
+            }
+            .foregroundStyle(CatCalColor.brandPrimary)
+            .frame(maxWidth: .infinity)
+            .frame(minHeight: 64)
+            .catCalGlassCard(cornerRadius: CatCalRadius.control)
+        }
+        .buttonStyle(.plain)
     }
 }
 
@@ -209,7 +249,7 @@ private struct AddTaskSheet: View {
                         Text("Reward")
                         Spacer()
                         Text("+\(xpValue) XP")
-                            .foregroundStyle(CatCalColor.xpGold)
+                            .foregroundStyle(CatCalColor.xpGreen)
                     }
                 }
             }
@@ -240,9 +280,7 @@ private struct AddTaskSheet: View {
 }
 
 #Preview {
-    NavigationStack {
-        TasksView()
-    }
-    .environment(GamificationCenter())
-    .modelContainer(for: [AppTask.self, UserProgress.self, Achievement.self, Cosmetic.self, ConnectedAccount.self], inMemory: true)
+    TasksView()
+        .environment(GamificationCenter())
+        .modelContainer(for: [AppTask.self, UserProgress.self, Achievement.self, Cosmetic.self, ConnectedAccount.self], inMemory: true)
 }

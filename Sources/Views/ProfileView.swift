@@ -24,36 +24,54 @@ struct ProfileView: View {
 
     var body: some View {
         ZStack {
-            CatCalColor.appBackground.ignoresSafeArea()
+            CatCalBackground()
 
-            List {
-                Section {
-                    HStack {
-                        Text("Version")
-                        Spacer()
-                        Text(appVersion)
-                            .foregroundStyle(CatCalColor.textSecondary)
+            VStack(spacing: 0) {
+                ScreenHeader(title: "Profile", subtitle: "Your account and preferences")
+
+                ScrollView {
+                    VStack(spacing: CatCalSpacing.md) {
+                        SettingsCard {
+                            Toggle(isOn: soundMutedBinding) {
+                                SettingsLabel(systemImage: "speaker.slash.fill", title: "Mute sounds")
+                            }
+                            .tint(CatCalColor.brandPrimary)
+                        }
+
+                        SettingsCard {
+                            HStack {
+                                SettingsLabel(systemImage: "info.circle.fill", title: "Version")
+                                Spacer()
+                                Text(appVersion)
+                                    .font(CatCalFont.body(16))
+                                    .foregroundStyle(CatCalColor.textSecondary)
+                            }
+                        }
+
+                        Button {
+                            isConfirmingSignOut = true
+                        } label: {
+                            SettingsCard {
+                                HStack {
+                                    SettingsLabel(
+                                        systemImage: "rectangle.portrait.and.arrow.right",
+                                        title: "Sign out",
+                                        tint: CatCalColor.danger
+                                    )
+                                    Spacer()
+                                }
+                            }
+                        }
+                        .buttonStyle(.plain)
                     }
+                    .padding(.horizontal, CatCalSpacing.screen)
+                    .padding(.bottom, CatCalSpacing.tabBarClearance)
                 }
-                .listRowBackground(CatCalColor.surface)
-
-                Section {
-                    Toggle("Mute Sounds", isOn: soundMutedBinding)
-                }
-                .listRowBackground(CatCalColor.surface)
-
-                Section {
-                    Button(role: .destructive) {
-                        isConfirmingSignOut = true
-                    } label: {
-                        Text("Sign Out")
-                    }
-                }
-                .listRowBackground(CatCalColor.surface)
+                .scrollIndicators(.hidden)
             }
-            .scrollContentBackground(.hidden)
+            .padding(.top, CatCalSpacing.sm)
         }
-        .navigationTitle("Profile")
+        .toolbar(.hidden, for: .navigationBar)
         .confirmationDialog("Sign out of CatCal?", isPresented: $isConfirmingSignOut, titleVisibility: .visible) {
             Button("Sign Out", role: .destructive) {
                 session.signOut()
@@ -61,6 +79,39 @@ struct ProfileView: View {
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("Your progress stays synced to your iCloud account — sign back in anytime to pick up where you left off.")
+        }
+    }
+}
+
+/// One glass panel in the settings stack.
+struct SettingsCard<Content: View>: View {
+    @ViewBuilder var content: () -> Content
+
+    var body: some View {
+        content()
+            .padding(.horizontal, CatCalSpacing.md)
+            .frame(minHeight: 60)
+            .catCalGlassCard(cornerRadius: CatCalRadius.control)
+    }
+}
+
+/// Icon-plus-title pairing shared by every settings row.
+struct SettingsLabel: View {
+    let systemImage: String
+    let title: String
+    var tint: Color = CatCalColor.brandPrimary
+
+    var body: some View {
+        HStack(spacing: CatCalSpacing.md) {
+            Image(systemName: systemImage)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(tint)
+                .frame(width: 30, height: 30)
+                .background(tint.opacity(0.14), in: RoundedRectangle(cornerRadius: 9, style: .continuous))
+
+            Text(title)
+                .font(CatCalFont.body(16))
+                .foregroundStyle(CatCalColor.textPrimary)
         }
     }
 }

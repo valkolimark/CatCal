@@ -37,9 +37,18 @@ and this project follows [Semantic Versioning](https://semver.org/).
 - `CalendarAggregator`: fans a date range out across every connected source concurrently and merges the results into one deduplicated, time-sorted list. A source that throws contributes a `CalendarSourceFailure` and drops out of the merge — one bad source can't blank the day. Covered by tests for merge/sort order, partial failure, reconnect-required errors, and dedup.
 - `ConnectedAccount` SwiftData model (+ `ConnectedAccountStore`) recording direct Google/Microsoft OAuth connections: provider, account email, connected date, and which of that account's calendars are enabled. No tokens are stored here — the OAuth SDKs keep their own Keychain caches.
 - `HiddenCalendars`: device-local (`UserDefaults`) per-source record of which calendars the user has switched off.
+- `CatCalBackground`: the shared sky gradient — pale blue easing to near-white at the horizon, warmed by an off-screen sun — now behind every screen. Glass surfaces need variation underneath to read as glass.
+- Shared UI components: `ScreenHeader` (large title, subtitle, trailing glass pill), `StatPill`, `TintedChip`, `CatBuddyImage`, `FloatingTabBar`, `SettingsCard`/`SettingsLabel`.
+- `CatBuddy` image set for the cat illustration on Today, Tasks, Buddy, onboarding and sign-in. Empty for now — drop 1x/2x/3x PNGs onto it in Xcode and `CatBuddyImage` picks them up with no code change; until then it falls back to an SF Symbol so layout is already correct.
+- Debug-only `-seedSampleData` and `-startTab <tab>` launch arguments (alongside the existing `-skipAuth`) for checking a populated screen against its design in the Simulator. Compiled out of release builds.
 
 ### Changed
 
+- Visual revamp to match the new design comps. The palette moves off coral onto an action blue, with a near-navy text color, green XP chips, and retuned Google/Outlook/iCloud source colors; `XPGold` is now reserved for celebration moments and the Buddy progress bar. Cards gained a hairline highlight and a soft drop shadow so they lift off the sky.
+- Every top-level screen now opens with the same large left-aligned title, subtitle, and trailing glass pill, on a shared 20pt gutter.
+- The system tab bar is replaced by a custom floating glass `FloatingTabBar` (Today/Tasks/Buddy/Profile), so the cat illustration can sit behind it and the selected tab can carry a solid pill. Still a `TabView` underneath with its own bar hidden, which keeps each tab's view state and navigation stack alive across switches.
+- Today's event cards show a full time range and a rounded source accent bar; the tasks teaser is a glass card with a clipboard tile and chevron. Tasks' "Add task" is a full-width row in the list rather than a toolbar button.
+- Profile is a stack of glass setting cards instead of a `List`; onboarding and sign-in moved off the coral/indigo gradient onto the shared sky.
 - `CalendarService` is now `EventKitCalendarSource`, one `CalendarSourceProviding` implementation among several rather than the only path to calendar data. `TodayView` pulls from `CalendarAggregator` instead of calling EventKit directly.
 - Today no longer replaces the whole screen with the permission-denied state when EventKit access is off — it does so only when nothing else is feeding it events, so a directly connected Google/Outlook account still shows a day. Per-source failures surface as inline banners above the event list.
 
