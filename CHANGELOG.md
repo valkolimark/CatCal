@@ -47,6 +47,9 @@ and this project follows [Semantic Versioning](https://semver.org/).
 - `ConnectableCalendarSource` protocol so a provider gets a connect/disconnect/toggle UI by conforming, rather than by growing the screen a second branch.
 - `OAuthConfig`, which reads the client IDs from `Info.plist` and detects unreplaced placeholders, so an unconfigured build shows "not set up yet" instead of starting a sign-in that can only fail.
 - `README.md` with the Google Cloud Console and Azure Portal setup steps, and the debug launch arguments.
+- Direct Outlook connection: `MicrosoftCalendarSource` signs in through MSAL (added via SPM) against the `common` authority, so both work/school and personal Microsoft accounts work, and reads `me/calendarView`/`me/calendars` from Microsoft Graph. MSAL owns the Keychain-backed token cache and silent refresh; `acquireTokenSilent` handles later launches. Registered the `msauth.com.valkolimark.catcal` URL scheme and the `msauthv2`/`msauthv3` query schemes so MSAL can hand off to Microsoft Authenticator when it's installed.
+- Outlook appears on the Calendar Sources screen through the same `ConnectableCalendarSource` row as Google — one code path, so the two providers stay in step.
+- `ProviderDateParsing`, covering the two providers' awkward date formats — Google's all-day dates resolve in the device's zone rather than UTC (so an all-day event doesn't slip a day), and Graph's zone-less local times get recombined with their named zone and their seven fractional digits trimmed. Ten tests over both.
 
 ### Changed
 

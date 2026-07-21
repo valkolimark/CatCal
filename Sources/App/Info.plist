@@ -28,11 +28,26 @@
 				<string>com.googleusercontent.apps.YOUR_GOOGLE_CLIENT_ID</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>msauth.catcal</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>msauth.com.valkolimark.catcal</string>
+			</array>
+		</dict>
 	</array>
 	<key>CFBundleVersion</key>
 	<string>1</string>
 	<key>GIDClientID</key>
 	<string>YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com</string>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>msauthv2</string>
+		<string>msauthv3</string>
+	</array>
+	<key>MSALClientID</key>
+	<string>YOUR_MICROSOFT_CLIENT_ID</string>
 	<key>NSCalendarsFullAccessUsageDescription</key>
 	<string>CatCal reads your calendars to build one unified view of your day across Google, Outlook, and iCloud.</string>
 	<key>NSCalendarsUsageDescription</key>

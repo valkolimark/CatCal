@@ -1,4 +1,5 @@
 import GoogleSignIn
+import MSAL
 import SwiftData
 import SwiftUI
 
@@ -10,6 +11,7 @@ struct CatCalApp: App {
     /// immediately visible to Today's next refresh.
     @State private var calendarAggregator = CalendarAggregator(sources: [EventKitCalendarSource()])
     @State private var googleSource = GoogleCalendarSource()
+    @State private var microsoftSource = MicrosoftCalendarSource()
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
 
     private let modelContainer = Persistence.makeModelContainer()
@@ -59,17 +61,25 @@ struct CatCalApp: App {
                     calendarAggregator.register(googleSource)
                 }
 
+                await microsoftSource.restorePreviousSignIn()
+                if microsoftSource.hasConnectedAccount {
+                    calendarAggregator.register(microsoftSource)
+                }
+
                 await session.restore()
             }
-            // Completes the Google OAuth round trip when Safari hands control
-            // back to the app.
+            // Completes an OAuth round trip when Safari (or the Microsoft
+            // Authenticator app) hands control back. Each SDK ignores URLs
+            // that aren't its own, so both get a look.
             .onOpenURL { url in
-                _ = GIDSignIn.sharedInstance.handle(url)
+                if GIDSignIn.sharedInstance.handle(url) { return }
+                _ = MSALPublicClientApplication.handleMSALResponse(url, sourceApplication: nil)
             }
             .animation(.easeInOut(duration: 0.25), value: session.isSignedIn)
             .environment(gamificationCenter)
             .environment(calendarAggregator)
             .environment(googleSource)
+            .environment(microsoftSource)
             .overlay(alignment: .top) {
                 if let toast = gamificationCenter.toast {
                     XPToastView(message: toast.message)

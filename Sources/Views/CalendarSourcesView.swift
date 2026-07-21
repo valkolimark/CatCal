@@ -7,6 +7,7 @@ struct CalendarSourcesView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(CalendarAggregator.self) private var aggregator
     @Environment(GoogleCalendarSource.self) private var google
+    @Environment(MicrosoftCalendarSource.self) private var microsoft
 
     /// Per-provider calendar lists, loaded lazily once connected.
     @State private var calendars: [CalendarProvider: [SourceCalendar]] = [:]
@@ -14,7 +15,7 @@ struct CalendarSourcesView: View {
     @State private var errorMessage: String?
 
     private var connectableSources: [any ConnectableCalendarSource] {
-        [google]
+        [google, microsoft]
     }
 
     var body: some View {
@@ -194,7 +195,7 @@ private struct ConnectableSourceCard: View {
             if !source.isConfigured {
                 InlineNotice(
                     systemImage: "wrench.and.screwdriver.fill",
-                    message: "This build doesn't have a \(source.displayName) client ID yet. Add one in project.yml to enable connecting.",
+                    message: "This build doesn't have an OAuth client ID for \(source.displayName) yet. Add one in project.yml to enable connecting.",
                     tint: CatCalColor.textSecondary
                 )
             }
@@ -328,5 +329,6 @@ struct InlineNotice: View {
     }
     .environment(CalendarAggregator(sources: [EventKitCalendarSource()]))
     .environment(GoogleCalendarSource())
+    .environment(MicrosoftCalendarSource())
     .modelContainer(for: [AppTask.self, UserProgress.self, Achievement.self, Cosmetic.self, ConnectedAccount.self], inMemory: true)
 }

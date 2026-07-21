@@ -25,6 +25,9 @@ packages:
   GoogleSignIn:
     url: https://github.com/google/GoogleSignIn-iOS
     from: "9.0.0"
+  MSAL:
+    url: https://github.com/AzureAD/microsoft-authentication-library-for-objc
+    from: "2.9.0"
 
 targets:
   CatCal:
@@ -39,6 +42,8 @@ targets:
     dependencies:
       - package: GoogleSignIn
         product: GoogleSignIn
+      - package: MSAL
+        product: MSAL
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.valkolimark.catcal
@@ -69,12 +74,23 @@ targets:
         # placeholders and shows the connect rows as "not configured" rather
         # than starting a sign-in that can only fail.
         GIDClientID: YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com
+        MSALClientID: YOUR_MICROSOFT_CLIENT_ID
         CFBundleURLTypes:
           # Google: the reversed client ID, shown in the console right after
           # you create the iOS OAuth client.
           - CFBundleURLName: com.googleusercontent.apps.catcal
             CFBundleURLSchemes:
               - com.googleusercontent.apps.YOUR_GOOGLE_CLIENT_ID
+          # Microsoft: the redirect URI Azure generates for an iOS platform
+          # registration. Derived from the bundle ID, so it needs no editing.
+          - CFBundleURLName: msauth.catcal
+            CFBundleURLSchemes:
+              - msauth.com.valkolimark.catcal
+        # Lets MSAL hand off to the Microsoft Authenticator app when it's
+        # installed, instead of always falling back to the web view.
+        LSApplicationQueriesSchemes:
+          - msauthv2
+          - msauthv3
 
   CatCalTests:
     type: bundle.unit-test

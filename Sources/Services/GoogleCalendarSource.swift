@@ -64,7 +64,7 @@ final class GoogleCalendarSource: ConnectableCalendarSource {
     func connect() async throws -> String {
         guard isConfigured else { throw CalendarSourceError.notConfigured }
 
-        guard let presenter = Self.topViewController() else {
+        guard let presenter = PresentationAnchor.topViewController() else {
             throw CalendarSourceError.network("Couldn't find a window to present Google sign-in.")
         }
 
@@ -173,20 +173,6 @@ final class GoogleCalendarSource: ConnectableCalendarSource {
         return error
     }
 
-    /// The view controller Google's flow should be presented from. Reaching
-    /// into UIKit is unavoidable — `signIn(withPresenting:)` takes a
-    /// `UIViewController`, with no SwiftUI equivalent.
-    private static func topViewController() -> UIViewController? {
-        let scene = UIApplication.shared.connectedScenes
-            .compactMap { $0 as? UIWindowScene }
-            .first { $0.activationState == .foregroundActive }
-
-        var controller = scene?.keyWindow?.rootViewController
-        while let presented = controller?.presentedViewController {
-            controller = presented
-        }
-        return controller
-    }
 }
 
 // MARK: - REST
@@ -315,12 +301,7 @@ struct GoogleCalendarAPI: Sendable {
             let dateTime: String?
 
             var resolvedDate: Date? {
-                if let dateTime {
-                    return ISO8601DateFormatter.googleDateTime.date(from: dateTime)
-                        ?? ISO8601DateFormatter.googleDateTimeWithFractionalSeconds.date(from: dateTime)
-                }
-                guard let date else { return nil }
-                return DateFormatter.googleAllDay.date(from: date)
+                ProviderDateParsing.googleDate(dateTime: dateTime, date: date)
             }
         }
 
@@ -332,29 +313,3 @@ struct GoogleCalendarAPI: Sendable {
 /// `ISO8601DateFormatter` are documented as thread-safe for concurrent use once
 /// configured, and these are configured exactly once here and never mutated.
 /// Building a formatter per event would be far more expensive than the parse.
-private extension ISO8601DateFormatter {
-    nonisolated(unsafe) static let googleDateTime: ISO8601DateFormatter = {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime]
-        return formatter
-    }()
-
-    nonisolated(unsafe) static let googleDateTimeWithFractionalSeconds: ISO8601DateFormatter = {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        return formatter
-    }()
-}
-
-private extension DateFormatter {
-    /// All-day dates are calendar days with no zone, so they're parsed in the
-    /// device's zone — an all-day event on the 19th should read as the 19th
-    /// wherever the user is.
-    static let googleAllDay: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.calendar = Calendar(identifier: .gregorian)
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.dateFormat = "yyyy-MM-dd"
-        return formatter
-    }()
-}
