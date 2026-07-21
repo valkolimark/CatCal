@@ -57,12 +57,36 @@ actor EventKitCalendarSource: CalendarSourceProviding {
     }
 
     func availableCalendars() -> [SourceCalendar] {
-        eventStore.calendars(for: .event)
-            .map { calendar in
-                SourceCalendar(
-                    id: calendar.calendarIdentifier,
-                    title: calendar.title,
-                    accountEmail: calendar.source.title
+        accounts().flatMap(\.calendars)
+    }
+
+    /// Calendars grouped by the account they came from, which is how the
+    /// Manage Calendars screen presents them — and what the duplicate-source
+    /// check needs, since duplication happens per account, not per calendar.
+    func accounts() -> [EventKitAccount] {
+        // Grouped by identifier rather than by `EKSource` itself: EventKit
+        // vends that as an implicitly-unwrapped optional, and a nil key would
+        // silently collapse unrelated accounts into one bucket.
+        let grouped = Dictionary(grouping: eventStore.calendars(for: .event)) {
+            $0.source?.sourceIdentifier ?? "unknown"
+        }
+
+        return grouped
+            .map { identifier, calendars in
+                let title = calendars.first?.source?.title ?? "Other"
+                return EventKitAccount(
+                    id: identifier,
+                    title: title,
+                    kind: Self.source(for: calendars),
+                    calendars: calendars
+                        .map { calendar in
+                            SourceCalendar(
+                                id: calendar.calendarIdentifier,
+                                title: calendar.title,
+                                accountEmail: title
+                            )
+                        }
+                        .sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
                 )
             }
             .sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
@@ -95,6 +119,10 @@ actor EventKitCalendarSource: CalendarSourceProviding {
     private func visibleCalendars() -> [EKCalendar] {
         let hidden = HiddenCalendars.identifiers(forSourceID: Self.id)
         return eventStore.calendars(for: .event).filter { !hidden.contains($0.calendarIdentifier) }
+    }
+
+    private static func source(for calendars: [EKCalendar]) -> CalendarSource {
+        calendars.first.map(source(for:)) ?? .iCloud
     }
 
     /// Best-effort classification: EventKit doesn't expose a "Google" source

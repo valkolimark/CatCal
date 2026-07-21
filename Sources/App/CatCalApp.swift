@@ -13,17 +13,29 @@ struct CatCalApp: App {
     @State private var googleSource = GoogleCalendarSource()
     @State private var microsoftSource = MicrosoftCalendarSource()
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
+    /// The optional post-sign-in "connect your other calendars" step, shown
+    /// once. Separate from `hasCompletedOnboarding` because it can only run
+    /// after sign-in, and pre-Cycle-13 users have already passed that point.
+    @AppStorage("hasSeenCalendarConnect") private var hasSeenCalendarConnect = false
 
     private let modelContainer = Persistence.makeModelContainer()
 
     /// `-seedSampleData` is for looking at the populated app, so it skips
-    /// onboarding too rather than making every launch page through it.
-    private var showsOnboarding: Bool {
+    /// both first-run steps rather than making every launch page through them.
+    private var isSkippingFirstRun: Bool {
         #if DEBUG
-        !hasCompletedOnboarding && !SampleData.isEnabled
+        SampleData.isEnabled
         #else
-        !hasCompletedOnboarding
+        false
         #endif
+    }
+
+    private var showsOnboarding: Bool {
+        !hasCompletedOnboarding && !isSkippingFirstRun
+    }
+
+    private var showsCalendarConnect: Bool {
+        !hasSeenCalendarConnect && !isSkippingFirstRun
     }
 
     var body: some Scene {
@@ -39,6 +51,10 @@ struct CatCalApp: App {
                         RestoringSessionView()
                     case .signedOut:
                         SignInView(session: session)
+                    case .signedIn where showsCalendarConnect:
+                        ConnectCalendarsView {
+                            hasSeenCalendarConnect = true
+                        }
                     case .signedIn:
                         // Built only once signed in, so the @Query predicates
                         // inside capture the real ownerID rather than the mock.

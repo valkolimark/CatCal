@@ -4,7 +4,7 @@ struct ProfileView: View {
     let session: SessionController
 
     @State private var isConfirmingSignOut = false
-    @State private var isShowingCalendarSources = false
+    @State private var isShowingManageCalendars = false
     @AppStorage(SoundService.muteDefaultsKey) private var isSoundMuted = false
 
     /// Routes writes through `SoundService` (not just `UserDefaults`) so
@@ -33,11 +33,11 @@ struct ProfileView: View {
                 ScrollView {
                     VStack(spacing: CatCalSpacing.md) {
                         Button {
-                            isShowingCalendarSources = true
+                            isShowingManageCalendars = true
                         } label: {
                             SettingsCard {
                                 HStack {
-                                    SettingsLabel(systemImage: "calendar.badge.plus", title: "Calendar sources")
+                                    SettingsLabel(systemImage: "calendar.badge.plus", title: "Manage calendars")
                                     Spacer()
                                     Image(systemName: "chevron.right")
                                         .font(.system(size: 13, weight: .semibold))
@@ -88,12 +88,12 @@ struct ProfileView: View {
             .padding(.top, CatCalSpacing.sm)
         }
         .toolbar(.hidden, for: .navigationBar)
-        .navigationDestination(isPresented: $isShowingCalendarSources) {
-            CalendarSourcesView()
+        .navigationDestination(isPresented: $isShowingManageCalendars) {
+            ManageCalendarsView()
         }
         .task {
             #if DEBUG
-            isShowingCalendarSources = SampleData.opensCalendarSources
+            isShowingManageCalendars = SampleData.opensCalendarSources
             #endif
         }
         .confirmationDialog("Sign out of CatCal?", isPresented: $isConfirmingSignOut, titleVisibility: .visible) {

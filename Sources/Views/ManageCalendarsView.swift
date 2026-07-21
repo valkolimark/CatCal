@@ -1,9 +1,10 @@
 import SwiftData
 import SwiftUI
 
-/// Where the user connects Google and Outlook directly, on top of whatever
-/// already reaches them through iOS Settings.
-struct CalendarSourcesView: View {
+/// Everything feeding the Today screen, in one place: the calendars that
+/// arrive through iOS Settings, plus the Google and Outlook accounts CatCal
+/// connects to directly.
+struct ManageCalendarsView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(CalendarAggregator.self) private var aggregator
     @Environment(GoogleCalendarSource.self) private var google
@@ -11,6 +12,10 @@ struct CalendarSourcesView: View {
 
     /// Per-provider calendar lists, loaded lazily once connected.
     @State private var calendars: [CalendarProvider: [SourceCalendar]] = [:]
+    @State private var eventKitAccounts: [EventKitAccount] = []
+    /// Bumped whenever a hidden-calendar toggle flips, to re-read
+    /// `HiddenCalendars` (which lives in UserDefaults, not in SwiftUI state).
+    @State private var hiddenCalendarsRevision = 0
     @State private var busyProvider: CalendarProvider?
     @State private var errorMessage: String?
 
@@ -23,19 +28,43 @@ struct CalendarSourcesView: View {
             CatCalBackground()
 
             ScrollView {
-                VStack(spacing: CatCalSpacing.md) {
-                    SystemCalendarsCard()
+                VStack(alignment: .leading, spacing: CatCalSpacing.md) {
+                    SectionLabel("On this iPhone")
+
+                    if eventKitAccounts.isEmpty {
+                        EmptyEventKitCard()
+                    } else {
+                        ForEach(eventKitAccounts) { account in
+                            EventKitAccountCard(
+                                account: account,
+                                revision: hiddenCalendarsRevision,
+                                onToggle: { calendarID, isVisible in
+                                    HiddenCalendars.setHidden(
+                                        !isVisible,
+                                        calendarID: calendarID,
+                                        forSourceID: EventKitCalendarSource.id
+                                    )
+                                    hiddenCalendarsRevision += 1
+                                }
+                            )
+                        }
+                    }
+
+                    SectionLabel("Connected directly")
+                        .padding(.top, CatCalSpacing.sm)
 
                     ForEach(connectableSources, id: \.sourceID) { source in
                         ConnectableSourceCard(
                             source: source,
                             calendars: calendars[source.provider] ?? [],
+                            duplicateAccount: duplicateAccount(for: source),
                             isBusy: busyProvider == source.provider,
                             onConnect: { connect(source) },
                             onDisconnect: { disconnect(source) },
                             onToggleCalendar: { calendarID, isEnabled in
                                 setCalendar(calendarID, enabled: isEnabled, for: source)
-                            }
+                            },
+                            onHideDuplicates: { account in hideEventKitCalendars(of: account) }
                         )
                     }
 
@@ -43,6 +72,7 @@ struct CalendarSourcesView: View {
                         .font(CatCalFont.caption(12))
                         .foregroundStyle(CatCalColor.textSecondary)
                         .multilineTextAlignment(.center)
+                        .frame(maxWidth: .infinity)
                         .padding(.horizontal, CatCalSpacing.md)
                         .padding(.top, CatCalSpacing.sm)
                 }
@@ -51,9 +81,10 @@ struct CalendarSourcesView: View {
             }
             .scrollIndicators(.hidden)
         }
-        .navigationTitle("Calendar Sources")
+        .navigationTitle("Calendars")
         .navigationBarTitleDisplayMode(.large)
         .task {
+            await loadEventKitAccounts()
             for source in connectableSources where source.hasConnectedAccount {
                 await loadCalendars(for: source)
             }
@@ -67,6 +98,17 @@ struct CalendarSourcesView: View {
 
     private var showingError: Binding<Bool> {
         Binding(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } })
+    }
+
+    /// The EventKit account, if any, that's already syncing the same address
+    /// this source is connected to — the setup that produces duplicate events.
+    private func duplicateAccount(for source: any ConnectableCalendarSource) -> EventKitAccount? {
+        guard let email = source.accountEmail else { return nil }
+        return DuplicateSourceDetector.account(
+            matching: email,
+            in: eventKitAccounts,
+            provider: source.provider
+        )
     }
 
     // MARK: - Actions
@@ -121,6 +163,18 @@ struct CalendarSourcesView: View {
         ConnectedAccountStore.setCalendar(calendarID, enabled: enabled, for: source.provider, context: modelContext)
     }
 
+    /// The one-tap fix for a duplicated account: keep the direct connection
+    /// (which has the per-calendar toggles) and switch off the EventKit copy.
+    private func hideEventKitCalendars(of account: EventKitAccount) {
+        HiddenCalendars.hideAll(account.calendars.map(\.id), forSourceID: EventKitCalendarSource.id)
+        hiddenCalendarsRevision += 1
+    }
+
+    private func loadEventKitAccounts() async {
+        guard let eventKit = aggregator.source(as: EventKitCalendarSource.self) else { return }
+        eventKitAccounts = await eventKit.accounts()
+    }
+
     private func loadCalendars(for source: any ConnectableCalendarSource) async {
         do {
             let fetched = try await source.availableCalendars()
@@ -139,28 +193,93 @@ struct CalendarSourcesView: View {
     }
 }
 
-/// iCloud and anything else the user added in iOS Settings. Nothing to
-/// configure here — it's listed so the screen shows the whole picture.
-private struct SystemCalendarsCard: View {
+private struct SectionLabel: View {
+    let text: String
+
+    init(_ text: String) {
+        self.text = text
+    }
+
+    var body: some View {
+        Text(text)
+            .font(CatCalFont.body(16))
+            .foregroundStyle(CatCalColor.textSecondary)
+            .padding(.leading, CatCalSpacing.xs)
+    }
+}
+
+private struct EmptyEventKitCard: View {
     var body: some View {
         HStack(spacing: CatCalSpacing.md) {
-            SourceGlyph(systemImage: "iphone", tint: CatCalColor.sourceSuccess)
+            SourceGlyph(systemImage: "iphone", tint: CatCalColor.textSecondary)
 
-            VStack(alignment: .leading, spacing: 2) {
-                Text("iPhone Calendars")
-                    .font(CatCalFont.headline(17))
-                    .foregroundStyle(CatCalColor.textPrimary)
-                Text("iCloud and any account added in iOS Settings")
-                    .font(CatCalFont.caption(12))
-                    .foregroundStyle(CatCalColor.textSecondary)
-            }
+            Text("No calendars from iOS Settings yet. Anything you add there shows up here automatically.")
+                .font(CatCalFont.body(15))
+                .foregroundStyle(CatCalColor.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
 
-            Spacer(minLength: CatCalSpacing.sm)
-
-            TintedChip(text: "Always on", tint: CatCalColor.sourceSuccess)
+            Spacer(minLength: 0)
         }
         .padding(CatCalSpacing.md)
         .catCalGlassCard()
+    }
+}
+
+/// One account from iOS Settings, with a visibility toggle per calendar.
+private struct EventKitAccountCard: View {
+    let account: EventKitAccount
+    /// Only here to re-run `body` when `HiddenCalendars` changes; the toggle
+    /// state itself lives in UserDefaults, which SwiftUI can't observe.
+    let revision: Int
+    let onToggle: (String, Bool) -> Void
+
+    private var tint: Color { account.kind.tagColor }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: CatCalSpacing.md) {
+            HStack(spacing: CatCalSpacing.md) {
+                SourceGlyph(systemImage: "iphone", tint: tint)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(account.title)
+                        .font(CatCalFont.headline(17))
+                        .foregroundStyle(CatCalColor.textPrimary)
+                        .lineLimit(1)
+                    Text("Synced through iOS Settings")
+                        .font(CatCalFont.caption(12))
+                        .foregroundStyle(CatCalColor.textSecondary)
+                }
+
+                Spacer(minLength: CatCalSpacing.sm)
+
+                TintedChip(text: account.kind.label, tint: tint)
+            }
+
+            if !account.calendars.isEmpty {
+                Divider().overlay(CatCalColor.textSecondary.opacity(0.2))
+
+                ForEach(account.calendars) { calendar in
+                    Toggle(isOn: binding(for: calendar)) {
+                        Text(calendar.title)
+                            .font(CatCalFont.body(15))
+                            .foregroundStyle(CatCalColor.textPrimary)
+                            .lineLimit(1)
+                    }
+                    .tint(tint)
+                }
+            }
+        }
+        .padding(CatCalSpacing.md)
+        .catCalGlassCard()
+    }
+
+    private func binding(for calendar: SourceCalendar) -> Binding<Bool> {
+        Binding(
+            get: {
+                !HiddenCalendars.isHidden(calendar.id, forSourceID: EventKitCalendarSource.id)
+            },
+            set: { onToggle(calendar.id, $0) }
+        )
     }
 }
 
@@ -169,10 +288,12 @@ private struct SystemCalendarsCard: View {
 private struct ConnectableSourceCard: View {
     let source: any ConnectableCalendarSource
     let calendars: [SourceCalendar]
+    let duplicateAccount: EventKitAccount?
     let isBusy: Bool
     let onConnect: () -> Void
     let onDisconnect: () -> Void
     let onToggleCalendar: (String, Bool) -> Void
+    let onHideDuplicates: (EventKitAccount) -> Void
 
     @State private var isConfirmingDisconnect = false
 
@@ -198,6 +319,10 @@ private struct ConnectableSourceCard: View {
                     message: "This build doesn't have an OAuth client ID for \(source.displayName) yet. Add one in project.yml to enable connecting.",
                     tint: CatCalColor.textSecondary
                 )
+            }
+
+            if let duplicateAccount {
+                duplicateWarning(for: duplicateAccount)
             }
 
             if source.hasConnectedAccount, !calendars.isEmpty {
@@ -261,6 +386,30 @@ private struct ConnectableSourceCard: View {
         }
     }
 
+    /// Both paths active for one account means every event is listed twice.
+    /// Offered as a one-tap fix rather than applied automatically — some
+    /// people genuinely want both, and silently hiding calendars would be a
+    /// worse surprise than the duplicates.
+    private func duplicateWarning(for account: EventKitAccount) -> some View {
+        VStack(alignment: .leading, spacing: CatCalSpacing.sm) {
+            InlineNotice(
+                systemImage: "doc.on.doc.fill",
+                message: "This account is already syncing through iOS Settings — connecting it directly may cause duplicate events.",
+                tint: CatCalColor.warning
+            )
+
+            Button {
+                onHideDuplicates(account)
+            } label: {
+                Text("Hide “\(account.title)” calendars from iOS Settings")
+                    .font(CatCalFont.caption(13))
+                    .foregroundStyle(CatCalColor.brandPrimary)
+            }
+            .buttonStyle(.plain)
+            .padding(.leading, CatCalSpacing.xs)
+        }
+    }
+
     private var calendarToggles: some View {
         VStack(alignment: .leading, spacing: CatCalSpacing.sm) {
             Text("Calendars")
@@ -287,7 +436,7 @@ private struct ConnectableSourceCard: View {
     }
 }
 
-private struct SourceGlyph: View {
+struct SourceGlyph: View {
     let systemImage: String
     let tint: Color
 
@@ -325,7 +474,7 @@ struct InlineNotice: View {
 
 #Preview {
     NavigationStack {
-        CalendarSourcesView()
+        ManageCalendarsView()
     }
     .environment(CalendarAggregator(sources: [EventKitCalendarSource()]))
     .environment(GoogleCalendarSource())
