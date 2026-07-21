@@ -4,6 +4,7 @@ struct ProfileView: View {
     let session: SessionController
 
     @State private var isConfirmingSignOut = false
+    @State private var isShowingCalendarSources = false
     @AppStorage(SoundService.muteDefaultsKey) private var isSoundMuted = false
 
     /// Routes writes through `SoundService` (not just `UserDefaults`) so
@@ -31,6 +32,21 @@ struct ProfileView: View {
 
                 ScrollView {
                     VStack(spacing: CatCalSpacing.md) {
+                        Button {
+                            isShowingCalendarSources = true
+                        } label: {
+                            SettingsCard {
+                                HStack {
+                                    SettingsLabel(systemImage: "calendar.badge.plus", title: "Calendar sources")
+                                    Spacer()
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: 13, weight: .semibold))
+                                        .foregroundStyle(CatCalColor.textSecondary)
+                                }
+                            }
+                        }
+                        .buttonStyle(.plain)
+
                         SettingsCard {
                             Toggle(isOn: soundMutedBinding) {
                                 SettingsLabel(systemImage: "speaker.slash.fill", title: "Mute sounds")
@@ -72,6 +88,14 @@ struct ProfileView: View {
             .padding(.top, CatCalSpacing.sm)
         }
         .toolbar(.hidden, for: .navigationBar)
+        .navigationDestination(isPresented: $isShowingCalendarSources) {
+            CalendarSourcesView()
+        }
+        .task {
+            #if DEBUG
+            isShowingCalendarSources = SampleData.opensCalendarSources
+            #endif
+        }
         .confirmationDialog("Sign out of CatCal?", isPresented: $isConfirmingSignOut, titleVisibility: .visible) {
             Button("Sign Out", role: .destructive) {
                 session.signOut()

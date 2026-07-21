@@ -42,6 +42,12 @@ and this project follows [Semantic Versioning](https://semver.org/).
 - `CatBuddy` image set for the cat illustration on Today, Tasks, Buddy, onboarding and sign-in. Empty for now — drop 1x/2x/3x PNGs onto it in Xcode and `CatBuddyImage` picks them up with no code change; until then it falls back to an SF Symbol so layout is already correct.
 - Debug-only `-seedSampleData` and `-startTab <tab>` launch arguments (alongside the existing `-skipAuth`) for checking a populated screen against its design in the Simulator. Compiled out of release builds.
 
+- Direct Google Calendar connection: `GoogleCalendarSource` signs in through the GoogleSignIn SDK (added via SPM), requests the read-only calendar scope, and reads `calendarList`/`events` from the Calendar v3 API into `UnifiedEvent`s. Tokens stay in GoogleSignIn's own Keychain cache — none are handled here. Restores the previous sign-in at launch, and reports a 401 as "reconnect" rather than a generic failure.
+- `CalendarSourcesView`, reachable from Profile: iPhone Calendars (always on), plus a Google row that connects, shows the signed-in email, lists per-calendar toggles, and disconnects behind a confirmation.
+- `ConnectableCalendarSource` protocol so a provider gets a connect/disconnect/toggle UI by conforming, rather than by growing the screen a second branch.
+- `OAuthConfig`, which reads the client IDs from `Info.plist` and detects unreplaced placeholders, so an unconfigured build shows "not set up yet" instead of starting a sign-in that can only fail.
+- `README.md` with the Google Cloud Console and Azure Portal setup steps, and the debug launch arguments.
+
 ### Changed
 
 - Visual revamp to match the new design comps. The palette moves off coral onto an action blue, with a near-navy text color, green XP chips, and retuned Google/Outlook/iCloud source colors; `XPGold` is now reserved for celebration moments and the Buddy progress bar. Cards gained a hairline highlight and a soft drop shadow so they lift off the sky.

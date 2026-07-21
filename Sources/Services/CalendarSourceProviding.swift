@@ -73,6 +73,12 @@ enum CalendarSourceError: LocalizedError, Equatable {
     /// The provider rejected our token — the user has to sign in again.
     case needsReconnect
     case accessDenied
+    /// The app was built without a real OAuth client ID for this provider.
+    case notConfigured
+    /// Sign-in succeeded but the user declined the calendar scope.
+    case scopeDeclined
+    /// The user backed out of the sign-in sheet. Not worth reporting.
+    case cancelled
     case network(String)
     case decoding(String)
 
@@ -84,6 +90,12 @@ enum CalendarSourceError: LocalizedError, Equatable {
             "Your session expired — reconnect to keep seeing these events."
         case .accessDenied:
             "Calendar access is turned off."
+        case .notConfigured:
+            "This provider isn't set up in this build yet."
+        case .scopeDeclined:
+            "CatCal needs permission to read your calendar to show your events."
+        case .cancelled:
+            "Sign-in cancelled."
         case .network(let detail):
             detail
         case .decoding(let detail):
@@ -117,4 +129,37 @@ protocol CalendarSourceProviding: Sendable {
 
 extension CalendarSourceProviding {
     func availableCalendars() async throws -> [SourceCalendar] { [] }
+}
+
+/// A source the user connects by hand through OAuth, rather than one that's
+/// simply there like EventKit. Google and Microsoft both conform, which is
+/// what lets the Calendar Sources screen render one row type for both.
+@MainActor
+protocol ConnectableCalendarSource: CalendarSourceProviding, AnyObject {
+    var provider: CalendarProvider { get }
+    /// Nil when disconnected.
+    var accountEmail: String? { get }
+    /// True when the provider rejected our token and only a fresh sign-in
+    /// will fix it.
+    var needsReconnect: Bool { get }
+    /// False when this build still carries a placeholder OAuth client ID.
+    var isConfigured: Bool { get }
+    /// Calendars the user has switched on; nil means all of them.
+    var enabledCalendarIDs: Set<String>? { get set }
+
+    /// Presents the provider's sign-in flow. Returns the connected account's
+    /// email address.
+    @discardableResult
+    func connect() async throws -> String
+    func disconnect()
+    /// Re-adopts a session stored by the provider's SDK on a previous launch.
+    func restorePreviousSignIn() async
+}
+
+extension ConnectableCalendarSource {
+    /// The same answer as `isConnected`, without the `await`. The protocol's
+    /// version has to be `async` for actor-based sources like EventKit; a
+    /// SwiftUI body can't await, and for an OAuth source "connected" is just
+    /// "we know whose account this is".
+    var hasConnectedAccount: Bool { accountEmail != nil }
 }

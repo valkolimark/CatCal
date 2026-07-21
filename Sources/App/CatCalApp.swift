@@ -1,3 +1,4 @@
+import GoogleSignIn
 import SwiftData
 import SwiftUI
 
@@ -8,6 +9,7 @@ struct CatCalApp: App {
     /// App-level so a connection made on the Calendar Sources screen is
     /// immediately visible to Today's next refresh.
     @State private var calendarAggregator = CalendarAggregator(sources: [EventKitCalendarSource()])
+    @State private var googleSource = GoogleCalendarSource()
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
 
     private let modelContainer = Persistence.makeModelContainer()
@@ -49,11 +51,25 @@ struct CatCalApp: App {
                     SampleData.seedTasks(context: modelContainer.mainContext)
                 }
                 #endif
+                // Re-adopts the Google session GoogleSignIn stored on a
+                // previous launch, so a connection survives relaunch without
+                // the user signing in again.
+                await googleSource.restorePreviousSignIn()
+                if googleSource.hasConnectedAccount {
+                    calendarAggregator.register(googleSource)
+                }
+
                 await session.restore()
+            }
+            // Completes the Google OAuth round trip when Safari hands control
+            // back to the app.
+            .onOpenURL { url in
+                _ = GIDSignIn.sharedInstance.handle(url)
             }
             .animation(.easeInOut(duration: 0.25), value: session.isSignedIn)
             .environment(gamificationCenter)
             .environment(calendarAggregator)
+            .environment(googleSource)
             .overlay(alignment: .top) {
                 if let toast = gamificationCenter.toast {
                     XPToastView(message: toast.message)

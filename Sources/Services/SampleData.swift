@@ -22,6 +22,12 @@ enum SampleData {
         return AppTab(rawValue: arguments[index + 1])
     }
 
+    /// Pushes Profile straight to Calendar Sources at launch, since that
+    /// screen is otherwise only reachable by tapping.
+    static var opensCalendarSources: Bool {
+        ProcessInfo.processInfo.arguments.contains("-openCalendarSources")
+    }
+
     /// Stands in for a connected provider so the Today screen has something
     /// to render. Conforms to the same protocol as the real sources, so this
     /// also exercises the Cycle 10 seam end to end.

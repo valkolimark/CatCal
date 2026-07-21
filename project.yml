@@ -21,6 +21,11 @@ settings:
     DEVELOPMENT_TEAM: VJJB67S9K8
     CODE_SIGN_STYLE: Automatic
 
+packages:
+  GoogleSignIn:
+    url: https://github.com/google/GoogleSignIn-iOS
+    from: "9.0.0"
+
 targets:
   CatCal:
     type: application
@@ -31,6 +36,9 @@ targets:
         excludes:
           # Referenced via CODE_SIGN_ENTITLEMENTS; must not ship as a bundled resource.
           - "App/CatCal.entitlements"
+    dependencies:
+      - package: GoogleSignIn
+        product: GoogleSignIn
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.valkolimark.catcal
@@ -55,6 +63,18 @@ targets:
           - remote-notification
         NSCalendarsUsageDescription: "CatCal reads your calendars to build one unified view of your day across Google, Outlook, and iCloud."
         NSCalendarsFullAccessUsageDescription: "CatCal reads your calendars to build one unified view of your day across Google, Outlook, and iCloud."
+        # OAuth client IDs. Neither is a secret — both are safe to commit.
+        # Replace the placeholders with the real values from the Google Cloud
+        # Console and Azure Portal (see README). `OAuthConfig` detects the
+        # placeholders and shows the connect rows as "not configured" rather
+        # than starting a sign-in that can only fail.
+        GIDClientID: YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com
+        CFBundleURLTypes:
+          # Google: the reversed client ID, shown in the console right after
+          # you create the iOS OAuth client.
+          - CFBundleURLName: com.googleusercontent.apps.catcal
+            CFBundleURLSchemes:
+              - com.googleusercontent.apps.YOUR_GOOGLE_CLIENT_ID
 
   CatCalTests:
     type: bundle.unit-test
