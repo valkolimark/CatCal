@@ -14,6 +14,7 @@ private extension CalendarSource {
 struct TodayView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(GamificationCenter.self) private var gamificationCenter
+    @Environment(CalendarAggregator.self) private var aggregator
     @Query private var progressRecords: [UserProgress]
     @Query private var pendingTasks: [AppTask]
 
@@ -43,12 +44,15 @@ struct TodayView: View {
             VStack(spacing: 0) {
                 header
 
-                switch viewModel.accessState {
-                case .denied:
+                if viewModel.showsPermissionState {
                     PermissionDeniedView()
-                case .notDetermined, .authorized:
+                } else {
                     ScrollView {
                         VStack(spacing: CatCalSpacing.md) {
+                            ForEach(viewModel.failures) { failure in
+                                SourceFailureBanner(failure: failure)
+                            }
+
                             if viewModel.isLoading {
                                 ProgressView()
                                     .padding(.top, CatCalSpacing.xl)
@@ -73,8 +77,8 @@ struct TodayView: View {
         }
         .task {
             AchievementEngine.seedIfNeeded(context: modelContext)
-            await viewModel.load()
-            guard viewModel.accessState == .authorized else { return }
+            await viewModel.load(using: aggregator)
+            guard !viewModel.connectedSources.isEmpty else { return }
 
             let progress = ProgressEngine.currentProgress(in: modelContext)
             ProgressEngine.updateStreak(for: progress)
@@ -131,8 +135,35 @@ private struct StreakPill: View {
     }
 }
 
+/// Inline, non-blocking: one source failing shouldn't hide the rest of the
+/// day, so this sits above the events it couldn't add rather than replacing
+/// them.
+private struct SourceFailureBanner: View {
+    let failure: CalendarSourceFailure
+
+    var body: some View {
+        HStack(spacing: CatCalSpacing.sm) {
+            Image(systemName: failure.needsReconnect ? "arrow.clockwise.circle.fill" : "exclamationmark.triangle.fill")
+                .foregroundStyle(CatCalColor.warning)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(failure.displayName)
+                    .font(CatCalFont.headline(14))
+                    .foregroundStyle(CatCalColor.textPrimary)
+                Text(failure.message)
+                    .font(CatCalFont.caption())
+                    .foregroundStyle(CatCalColor.textSecondary)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(CatCalSpacing.md)
+        .background(CatCalColor.warning.opacity(0.12), in: RoundedRectangle(cornerRadius: CatCalRadius.control))
+    }
+}
+
 private struct EventCard: View {
-    let event: CalendarEvent
+    let event: UnifiedEvent
 
     var body: some View {
         HStack(spacing: CatCalSpacing.md) {
@@ -250,5 +281,6 @@ private struct PermissionDeniedView: View {
         TodayView()
     }
     .environment(GamificationCenter())
-    .modelContainer(for: [AppTask.self, UserProgress.self, Achievement.self, Cosmetic.self], inMemory: true)
+    .environment(CalendarAggregator(sources: [EventKitCalendarSource()]))
+    .modelContainer(for: [AppTask.self, UserProgress.self, Achievement.self, Cosmetic.self, ConnectedAccount.self], inMemory: true)
 }

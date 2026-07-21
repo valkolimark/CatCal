@@ -19,10 +19,10 @@ struct PersistenceSchemaTests {
         }
     }
 
-    @Test("Schema covers all four models")
+    @Test("Schema covers every model")
     func schemaCoversAllModels() {
         let names = Set(Persistence.schema.entities.map(\.name))
-        #expect(names == ["AppTask", "UserProgress", "Achievement", "Cosmetic"])
+        #expect(names == ["AppTask", "UserProgress", "Achievement", "Cosmetic", "ConnectedAccount"])
     }
 
     @Test("Models round-trip through a container")

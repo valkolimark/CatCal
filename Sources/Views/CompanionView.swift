@@ -229,5 +229,5 @@ private struct CosmeticCell: View {
         CompanionView()
     }
     .environment(GamificationCenter())
-    .modelContainer(for: [AppTask.self, UserProgress.self, Achievement.self, Cosmetic.self], inMemory: true)
+    .modelContainer(for: [AppTask.self, UserProgress.self, Achievement.self, Cosmetic.self, ConnectedAccount.self], inMemory: true)
 }

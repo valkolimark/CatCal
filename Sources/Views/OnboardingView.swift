@@ -28,7 +28,7 @@ struct OnboardingView: View {
     let onComplete: () -> Void
 
     @State private var step = 0
-    private let calendarService = CalendarService()
+    private let calendarSource = EventKitCalendarSource()
 
     var body: some View {
         ZStack {
@@ -70,7 +70,7 @@ struct OnboardingView: View {
             }
         } else {
             Task {
-                _ = await calendarService.requestAccess()
+                _ = await calendarSource.requestAccess()
                 onComplete()
             }
         }

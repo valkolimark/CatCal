@@ -244,5 +244,5 @@ private struct AddTaskSheet: View {
         TasksView()
     }
     .environment(GamificationCenter())
-    .modelContainer(for: [AppTask.self, UserProgress.self, Achievement.self, Cosmetic.self], inMemory: true)
+    .modelContainer(for: [AppTask.self, UserProgress.self, Achievement.self, Cosmetic.self, ConnectedAccount.self], inMemory: true)
 }

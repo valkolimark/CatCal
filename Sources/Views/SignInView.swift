@@ -130,5 +130,5 @@ private struct ComingSoonButton: View {
 
 #Preview {
     SignInView(session: SessionController())
-        .modelContainer(for: [AppTask.self, UserProgress.self, Achievement.self, Cosmetic.self], inMemory: true)
+        .modelContainer(for: [AppTask.self, UserProgress.self, Achievement.self, Cosmetic.self, ConnectedAccount.self], inMemory: true)
 }

@@ -8,7 +8,8 @@ enum Persistence {
         AppTask.self,
         UserProgress.self,
         Achievement.self,
-        Cosmetic.self
+        Cosmetic.self,
+        ConnectedAccount.self
     ])
 
     /// Builds the app's `ModelContainer`, syncing through the private

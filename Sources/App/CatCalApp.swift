@@ -5,6 +5,9 @@ import SwiftUI
 struct CatCalApp: App {
     @State private var gamificationCenter = GamificationCenter()
     @State private var session = SessionController()
+    /// App-level so a connection made on the Calendar Sources screen is
+    /// immediately visible to Today's next refresh.
+    @State private var calendarAggregator = CalendarAggregator(sources: [EventKitCalendarSource()])
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
 
     private let modelContainer = Persistence.makeModelContainer()
@@ -34,6 +37,7 @@ struct CatCalApp: App {
             }
             .animation(.easeInOut(duration: 0.25), value: session.isSignedIn)
             .environment(gamificationCenter)
+            .environment(calendarAggregator)
             .overlay(alignment: .top) {
                 if let toast = gamificationCenter.toast {
                     XPToastView(message: toast.message)
